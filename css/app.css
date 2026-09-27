@@ -290,12 +290,15 @@ h3,h4{font-family:var(--f-title)}
 /* ---------- карта города: SVG из данных OpenStreetMap в цветах приложения ---------- */
 #map.map-city{position:relative;width:100%;height:clamp(320px,64vh,560px);overflow:hidden;background:var(--map-bg);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;
   --m-bldg:color-mix(in srgb,var(--map-bg) 86%,var(--ink) 14%);
-  --m-lmk:color-mix(in srgb,var(--map-bg) 55%,var(--gold) 45%);
+  --m-lmk:color-mix(in srgb,var(--map-bg) 72%,var(--gold) 28%);
   --m-wood:color-mix(in srgb,var(--park) 80%,var(--primary) 20%);
   --m-ped:color-mix(in srgb,var(--m-road) 84%,var(--gold) 16%);
   --m-ring:color-mix(in srgb,var(--m-road) 45%,var(--gold) 55%);
   --m-water-ink:color-mix(in srgb,var(--water) 30%,var(--ink) 70%)}
 #map.map-city:active{cursor:grabbing}
+/* за краем данных — «поля», как у старого плана */
+#map.map-city{background-color:color-mix(in srgb,var(--map-bg) 88%,var(--ink) 12%);background-image:radial-gradient(color-mix(in srgb,var(--ink) 18%,transparent) 1px,transparent 1.2px);background-size:14px 14px}
+.cm-sheet{fill:var(--map-bg);stroke:color-mix(in srgb,var(--gold) 60%,var(--map-bg));stroke-width:calc(var(--px)*1.5)}
 .cm-stage{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
 .mapcard #map .cm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}
 .cm-wood{fill:var(--m-wood)}
@@ -305,9 +308,10 @@ h3,h4{font-family:var(--f-title)}
 .cm-water{fill:var(--water)}
 .cm-sq{fill:var(--m-ped)}
 .cm-bldg{fill:var(--m-bldg)}
-.cm-lmk{fill:var(--m-lmk);stroke:color-mix(in srgb,var(--gold) 70%,var(--map-bg));stroke-width:max(.5px,calc(var(--px)*.8))}
-.cm-hb{fill:color-mix(in srgb,var(--hc) 38%,var(--map-bg));stroke:var(--hc);stroke-width:calc(var(--px)*1.3)}
-.cm-hb.v,.cm-hb.on{fill:color-mix(in srgb,var(--hc) 62%,var(--map-bg))}
+.cm-lmk{fill:var(--m-lmk)}
+.z-hi .cm-lmk{stroke:color-mix(in srgb,var(--gold) 55%,var(--map-bg));stroke-width:calc(var(--px)*.8)}
+.cm-hb{fill:color-mix(in srgb,var(--hc) 24%,var(--map-bg));stroke:color-mix(in srgb,var(--hc) 70%,var(--map-bg));stroke-width:max(.6px,calc(var(--px)*1.2))}
+.cm-hb.v,.cm-hb.on{fill:color-mix(in srgb,var(--hc) 40%,var(--map-bg))}
 .cm-wl1,.cm-wl2,.cm-rail,.cm-case path,.cm-fill path,.cm-route path{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .cm-wl1{stroke:var(--water);stroke-width:max(8px,calc(var(--px)*2))}
 .cm-wl2{stroke:var(--water);stroke-width:max(3px,calc(var(--px)*1.8))}

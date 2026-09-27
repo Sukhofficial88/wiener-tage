@@ -61,14 +61,15 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     return `<path class="cm-leg transit" data-to="${i}" d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}"/>`;
   }).join("");
   const labs = (data.lab || []).map((l, k) => ({...l, id:`cm-lp-${hero.id}-${k}`, pts:decode(l.p)}));
+  labs.forEach(l => { delete l.p; });
 
   el.innerHTML = `
   <div class="cm-stage">
     <svg class="cm-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true">
       <defs>
         <pattern id="cm-vine-${hero.id}" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="9" height="9" class="cm-vine-bg"/><circle cx="2" cy="2" r="1.3" class="cm-vine-dot"/></pattern>
-        ${labs.map(l => `<path id="${l.id}" d="${l.p}"/>`).join("")}
       </defs>
+      <rect class="cm-sheet" x="${B[0]}" y="${B[1]}" width="${B[2]-B[0]}" height="${B[3]-B[1]}"/>
       <g class="cm-base">
         ${lay("wood")}${lay("park")}${L.vine ? `<path class="cm-vine" fill="url(#cm-vine-${hero.id})" d="${L.vine}"/>` : ""}${lay("cem")}
         ${lay("wl2")}${lay("wl1")}${lay("water")}${lay("sq")}${lay("bldg")}${lay("lmk")}
@@ -146,7 +147,7 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     return clampV({x:(x0 + x1) / 2 + 12 / s, y:(y0 + y1) / 2, s});
   }
   let V = fitStops(), T = {...V};
-  let state = {active:-1, visited:new Set(), target:-1}, follow = false, lastPos = null, anim = 0;
+  let state = {active:-1, visited:new Set(), target:-1}, follow = false, lastPos = null, anim = 0, prevTarget = -1;
 
   const toPx = (x, y, v = V) => [(x - v.x) * v.s + W / 2, (y - v.y) * v.s + H / 2];
 
@@ -167,7 +168,8 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
 
   /* ---------- раскладка подписей без наложений ---------- */
   function layout(){
-    const taken = [];
+    // кнопки масштаба, линейка и © заняты всегда
+    const taken = [[W - 48, 0, W, 112], [0, H - 22, 130, H], [W - 118, H - 18, W, H]];
     const free = box => !taken.some(b => overlap(b, box));
     const onScreen = (x, y, m = 0) => x > -m && x < W + m && y > -m && y < H + m;
     // точки маршрута — главнее всего
@@ -211,7 +213,7 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
       cands.push({pri:l.c === "ring" || l.c === "wl1" ? 1.5 : l.c === "r1" || l.c === "r5" ? 2.5 : l.c === "r2" || l.c === "r3" ? 3.5 : 5, kind:"ln", l, st});
     }
     cands.sort((a, b) => a.pri - b.pri);
-    let svgOut = "", shownNames = new Set(), nLines = 0;
+    let svgOut = "", svgDefs = "", shownNames = new Set(), nLines = 0;
     for(const c of cands){
       if(c.kind === "pt"){
         const p = c.p;
@@ -230,37 +232,48 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
       if(!l.tw) l.tw = textWidth(text, st.canvas) + (st.ls || 0) * text.length;
       const need = (l.tw + 14) / V.s;
       if(need > l.n * .95) continue;
-      const seg = along(l, need);
-      if(!seg) continue;
       const pad = st.px * .75;
-      const pb = seg.pts.map(q => toPx(q[0], q[1]));
-      const box = [Math.min(...pb.map(q => q[0])) - pad, Math.min(...pb.map(q => q[1])) - pad, Math.max(...pb.map(q => q[0])) + pad, Math.max(...pb.map(q => q[1])) + pad];
-      if(box[0] < 0 || box[1] < 0 || box[2] > W || box[3] > H || !free(box)) continue;
+      let box = null;
+      const seg = along(l, need, st.px * .45 / V.s, pts => {
+        const pb = pts.map(q => toPx(q[0], q[1]));
+        box = [Math.min(...pb.map(q => q[0])) - pad, Math.min(...pb.map(q => q[1])) - pad, Math.max(...pb.map(q => q[0])) + pad, Math.max(...pb.map(q => q[1])) + pad];
+        return box[0] >= 0 && box[1] >= 0 && box[2] <= W && box[3] <= H && free(box);
+      });
+      if(!seg) continue;
       taken.push(box); shownNames.add(l.t); nLines++;
-      svgOut += `<text class="${st.cls}" dy=".35em" style="font-size:${st.px / V.s}px${st.ls ? `;letter-spacing:${st.ls / V.s}px` : ""}"><textPath href="#${l.id}" xlink:href="#${l.id}" startOffset="${seg.mid.toFixed(1)}" text-anchor="middle">${esc(text)}</textPath></text>`;
+      // подпись идёт по прямой между концами участка: так буквы не слипаются на изломах
+      const [a, z] = seg.ends, pid = `${l.id}-${nLines}`;
+      svgDefs += `<path id="${pid}" d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${z[0].toFixed(1)} ${z[1].toFixed(1)}"/>`;
+      svgOut += `<text class="${st.cls}" dy=".35em" style="font-size:${st.px / V.s}px${st.ls ? `;letter-spacing:${st.ls / V.s}px` : ""}"><textPath href="#${pid}" xlink:href="#${pid}" startOffset="50%" text-anchor="middle">${esc(text)}</textPath></text>`;
     }
     for(const p of points) p.el.hidden = !p.show, p.show = false;
-    labG.innerHTML = svgOut;
+    labG.innerHTML = `<defs>${svgDefs}</defs>` + svgOut;
   }
   const rankM = m => (m.g.ids.includes(state.active) ? 2 : 0) + (m.g.ids.includes(state.target) ? 1 : 0);
 
-  // Участок линии нужной длины с малым изгибом: ищем от середины к краям
-  function along(l, need){
+  // Место на линии нужной длины: почти прямое, в кадре и не занятое. Идём от середины к краям.
+  function along(l, need, tol, ok){
     if(!l.cum){ l.cum = [0]; for(let i = 1; i < l.pts.length; i++) l.cum.push(l.cum[i-1] + Math.hypot(l.pts[i][0]-l.pts[i-1][0], l.pts[i][1]-l.pts[i-1][1])); }
-    const total = l.cum[l.cum.length - 1];
-    const tries = [0.5, 0.35, 0.65, 0.2, 0.8];
-    for(const f of tries){
-      const mid = total * f, a = mid - need / 2, b = mid + need / 2;
-      if(a < 0 || b > total) continue;
+    const total = l.cum[l.cum.length - 1], room = total - need;
+    if(room < 0) return null;
+    const step = Math.max(need / 3, 15), mids = [];
+    for(let k = 0; k * step <= room / 2 + 1e-6; k++){ mids.push(total / 2 - k * step); if(k) mids.push(total / 2 + k * step); }
+    for(const mid of mids){
+      const a = Math.max(0, mid - need / 2), b = Math.min(total, mid + need / 2);
       const pts = [pointAt(l, a)];
       for(let i = 0; i < l.pts.length; i++) if(l.cum[i] > a && l.cum[i] < b) pts.push(l.pts[i]);
       pts.push(pointAt(l, b));
-      let turn = 0;
-      for(let i = 2; i < pts.length; i++){
+      // годится, если участок почти прямой: нет резких углов и он мало отходит от хорды
+      let sharp = false;
+      for(let i = 2; i < pts.length && !sharp; i++){
         const a1 = Math.atan2(pts[i-1][1]-pts[i-2][1], pts[i-1][0]-pts[i-2][0]), a2 = Math.atan2(pts[i][1]-pts[i-1][1], pts[i][0]-pts[i-1][0]);
-        let d = Math.abs(a2 - a1); if(d > Math.PI) d = 2 * Math.PI - d; turn += d;
+        let d = Math.abs(a2 - a1); if(d > Math.PI) d = 2 * Math.PI - d;
+        if(d > .45) sharp = true;
       }
-      if(turn < .6) return {mid, pts};
+      if(sharp) continue;
+      const [x0, y0] = pts[0], [x1, y1] = pts[pts.length-1], L = Math.hypot(x1 - x0, y1 - y0) || 1;
+      const dev = Math.max(...pts.map(([x, y]) => Math.abs((x - x0) * (y1 - y0) - (y - y0) * (x1 - x0)) / L));
+      if(dev < Math.max(tol, need * .03) && ok(pts)) return {pts, ends:x1 < x0 ? [pts[pts.length-1], pts[0]] : [pts[0], pts[pts.length-1]]};
     }
     return null;
   }
@@ -386,9 +399,22 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => { markers.forEach(m => { m.w = m.lw = 0; }); points.forEach(p => { p.w = 0; }); labs.forEach(l => { l.tw = 0; }); if(el.isConnected) commit(); });
 
   function nearMap(pos){ const [x, y] = P(pos.lat, pos.lng); return x > bx0 - 300 && x < bx1 + 300 && y > by0 - 300 && y < by1 + 300; }
+  // Следуя за человеком, держим в кадре и его, и следующую точку маршрута
   function centerOn(pos){
     const [x, y] = P(pos.lat, pos.lng);
-    animateTo({x, y, s:Math.max(T.s, FOLLOW_S)}, 600);
+    const tg = stopXY[state.target];
+    if(tg){
+      const x0 = Math.min(x, tg[0]), x1 = Math.max(x, tg[0]), y0 = Math.min(y, tg[1]), y1 = Math.max(y, tg[1]);
+      const s = Math.min(FOLLOW_S, (W - 100) / Math.max(x1 - x0, 1), (H - 110) / Math.max(y1 - y0, 1));
+      if(s >= .12){ glide({x:(x0 + x1) / 2, y:(y0 + y1) / 2, s}); return; }
+    }
+    glide({x, y, s:Math.max(T.s, FOLLOW_S)});
+  }
+  // мелкие сдвиги не анимируем: GPS присылает точку каждую секунду
+  function glide(v){
+    clampV(v);
+    if(!anim && Math.hypot((v.x - T.x) * T.s, (v.y - T.y) * T.s) < 10 && Math.abs(Math.log(v.s / T.s)) < .12) return;
+    animateTo(v, 600);
   }
 
   return {
@@ -412,6 +438,8 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
         p.classList.toggle("next", i === target);
       });
       layout();
+      if(follow && lastPos && nearMap(lastPos) && target !== prevTarget) centerOn(lastPos);
+      prevTarget = target;
     },
     focus(i){ const xy = stopXY[i]; if(xy) animateTo({x:xy[0], y:xy[1], s:Math.max(T.s, 1.1)}, 500); },
     updateMe(pos){

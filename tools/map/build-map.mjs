@@ -2,7 +2,7 @@
 // SVG paths in metres around the centre of each area, grouped by layer, plus label candidates and walking routes.
 // Usage: node tools/map/build-map.mjs [raw-dir]
 // Map data © OpenStreetMap contributors, ODbL.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { HEROES, CTX } from "../../js/data.js";
 
 const RAW = process.argv[2] || new URL("./raw/", import.meta.url).pathname;
@@ -101,9 +101,10 @@ function simplify(pts, tol){
   const stack = [[0, pts.length - 1]];
   while(stack.length){
     const [a, b] = stack.pop(); let md = 0, mi = -1;
-    const [ax, ay] = pts[a], [bx, by] = pts[b], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1e-9;
+    const [ax, ay] = pts[a], [bx, by] = pts[b], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy);
     for(let i = a + 1; i < b; i++){
-      const d = Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / L;
+      // closed rings start and end at the same point: measure from that point instead of a line
+      const d = L < 1e-6 ? Math.hypot(pts[i][0] - ax, pts[i][1] - ay) : Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / L;
       if(d > md){ md = d; mi = i; }
     }
     if(md > tol){ keep[mi] = 1; stack.push([a, mi], [mi, b]); }
@@ -154,6 +155,7 @@ function enc(pts, close){
 /* ---------- build ---------- */
 for(const h of HEROES){
   const osm = JSON.parse(readFileSync(`${RAW}/${h.id}-osm.json`, "utf8"));
+  if(existsSync(`${RAW}/${h.id}-bldg.json`)) osm.elements.push(...JSON.parse(readFileSync(`${RAW}/${h.id}-bldg.json`, "utf8")).elements);
   const routes = JSON.parse(readFileSync(`${RAW}/${h.id}-routes.json`, "utf8"));
   const { P, lat0, lng0, MG, ML, bounds } = projector(routes.bbox);
   const small = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) < 9e6; // < 9 km²: footpaths and all buildings
@@ -184,7 +186,10 @@ for(const h of HEROES){
       if(ac && (cl || segs.length > 1 || ac !== "sq")){ polys.push({ cls: ac, rings: segs, tags: t }); if(ac !== "sq") continue; }
       const lc = lineClass(t);
       if(lc && !(ac === "sq" && cl)){
-        for(const sg of segs) add(lc, enc(simplify(sg, lc === "rail" || lc.startsWith("wl") ? 1.5 : 0.8), false));
+        for(const sg of segs){
+          if(lc === "r6" && !small && len(sg) < 50) continue; // big areas: only longer footpaths
+          add(lc, enc(simplify(sg, lc === "rail" || lc.startsWith("wl") || (lc === "r6" && !small) ? 1.5 : 0.8), false));
+        }
         if(t.name && lc !== "rail" && lc !== "r6") named.push({ name: t.name, cls: lc, segs });
       }
     } else if(el.type === "relation"){
@@ -197,12 +202,14 @@ for(const h of HEROES){
 
   // areas
   for(const p of polys){
-    const tol = p.cls === "sq" ? 0.6 : 1.5;
+    const big = p.rings.reduce((m, r) => ringArea(r) > ringArea(m) ? r : m, p.rings[0] || []);
+    const area = big.length > 3 ? ringArea(big) : 0;
+    const whole = p.rings.every(closed);
+    if(whole && area < (small ? 150 : 800)) continue; // grass strips and tiny ponds are noise at this scale
+    const tol = p.cls === "sq" ? 0.6 : small ? 1.5 : 2.5;
     const d = p.rings.map(r => enc(simplify(r, tol), true)).join("");
     add(p.cls, d);
     const name = p.tags.name;
-    const big = p.rings.reduce((m, r) => ringArea(r) > ringArea(m) ? r : m, p.rings[0] || []);
-    const area = big.length > 3 ? ringArea(big) : 0;
     if(name && ((p.cls === "park" && area > 2500) || (p.cls === "sq" && area > 900) || (p.cls === "water" && area > 20000 && !/kanal/i.test(name)))){
       const lp = labelPoint(big);
       if(lp && lp.room > 12) pointLabels.push({ t: name, k: p.cls, x: r1(lp.pt[0]), y: r1(lp.pt[1]), a: Math.round(area) });
@@ -214,8 +221,8 @@ for(const h of HEROES){
     const outer = b.rings.filter(r => r.length > 3);
     if(!outer.length) continue;
     const area = Math.max(...outer.map(ringArea));
-    if(!small && area < 120) continue;
-    const d = outer.map(r => enc(simplify(r, 0.5), true)).join("");
+    if(area < (small ? 40 : 150)) continue;
+    const d = outer.map(r => enc(simplify(r, small ? 0.5 : 1), true)).join("");
     const hasLm = lmPts.some(l => outer.some(r => inside(l.xy, r)));
     const stopIdx = stopPts.map((xy, i) => outer.some(r => inside(xy, r)) ? i : -1).filter(i => i >= 0);
     if(stopIdx.length) hb.push({ i: stopIdx, d });
