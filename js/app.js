@@ -1,4 +1,4 @@
-import { HEROES as BASE_HEROES, UPCOMING as BASE_UPCOMING, LINKS as BASE_LINKS, RECORDINGS } from "./data.js";
+import { HEROES as BASE_HEROES, UPCOMING as BASE_UPCOMING, LINKS as BASE_LINKS, RECORDINGS, MUSIC } from "./data.js";
 import { LANGS, detectLang, setLang, lang, langInfo, t, tp, fmtNum } from "./i18n.js";
 import ru from "./content/ru.js";
 import de from "./content/de.js";
@@ -10,8 +10,9 @@ import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe as updateSchemeMe } from "./map.js";
 import { loadCityMap, mountCityMap } from "./citymap.js";
+import { Sound } from "./soundscape.js";
 
-const APP_VERSION = "0.7.1";
+const APP_VERSION = "0.8.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -34,7 +35,8 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 let visited = load(K.visited, {}) || {};
-let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe"}, load(K.settings, {}) || {});
+let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe", sound:true}, load(K.settings, {}) || {});
+Sound.enabled = settings.sound;
 const PALETTES = [
   {id:"cafe",   sw:["#F3EDE1","#1F4538","#B08D57","#8C2F39"]},
   {id:"gold",   sw:["#121110","#D4AF5A","#F1EADB","#E08A8F"]},
@@ -122,6 +124,8 @@ const ICON = {
   walk:'<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="9" cy="2.6" r="1.6" fill="currentColor"/><path d="M8 5.5L6 9l2 1.5-1 4.5M8 5.5l2.5 2.5 2 .5M6 9L4.5 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   tram:'<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3" width="9" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 8h9M5.5 15l1-2.5M10.5 15l-1-2.5M6 1h4" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
   pin:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 15s5-4.6 5-8.5A5 5 0 0 0 3 6.5C3 10.4 8 15 8 15z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="6.5" r="1.8" fill="currentColor"/></svg>',
+  note:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 12.5V3.5l7-1.5v9" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4.2" cy="12.5" r="1.9" fill="currentColor"/><circle cx="11.2" cy="11" r="1.9" fill="currentColor"/></svg>',
+  eye:'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2.1" fill="currentColor"/></svg>',
   demo:'<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 5.2v5.6L11 8z" fill="currentColor"/></svg>'
 };
 
@@ -247,19 +251,38 @@ function voiceNote(){
   const base = t("voiceNote", {extra: Voice.hasLang ? "" : t("voiceNoLang")});
   return Voice.goodVoice ? base : base + " " + t("voiceHint");
 }
-Voice.on(()=>{ setTimeout(onVoiceIdle, 0); updateVoiceUI(); });
+Voice.on(()=>{ Sound.duck(!!Voice.playing); setTimeout(onVoiceIdle, 0); updateVoiceUI(); });
+Sound.on(()=>{ updateMusicUI(); renderDock(); });
+function soundOn(){ return settings.sound && Sound.unlock(Voice._ac); }
+function musicTitle(name){ const m = MUSIC[name] || {}; return t("mus_"+name) + (m.year ? ` (${m.year})` : ""); }
+// Файлы звукового фона героя: скачиваем при старте прогулки, чтобы работали без сети
+function soundUrls(h){
+  const u = new Set();
+  h.stops.forEach(s=>{ if(!s.snd) return; s.snd.bed.forEach(([n])=>u.add(`audio/amb/${n}.mp3`)); if(s.snd.music) u.add(`audio/music/${s.snd.music}.mp3`); });
+  return [...u];
+}
+function updateMusicUI(){
+  $$("[data-music]").forEach(b=>{
+    const on = !!Sound.music && Sound.music.name === b.dataset.music;
+    b.setAttribute("aria-pressed", String(on));
+    b.innerHTML = (on ? ICON.stop : ICON.note) + (on ? t("stopBtn") : t("playMusic")) + ": " + musicTitle(b.dataset.music);
+  });
+}
 
 function listen(h, i, auto){
   const st = stopsOf(h); const s = st[i]; if(!s) return;
   S.listen = !!auto;
   setActive(i, true);
+  if(soundOn()) Sound.enter(s.snd); else Sound.stopAll(0.5);
   Voice.say(h, i, s.title, s.voice, audioFor(h, i), ()=>{
-    if(S.listen && i < st.length-1 && sameHero(S.hero, h)){
-      setTimeout(()=>{ if(S.listen && !Voice.playing && sameHero(S.hero, h)) listen(S.hero, i+1, true); }, 900);
-    } else S.listen = false;
+    const more = S.listen && i < st.length-1 && sameHero(S.hero, h);
+    const next = ()=>{ if(S.listen && !Voice.playing && sameHero(S.hero, h)) listen(S.hero, i+1, true); };
+    if(more && settings.sound && s.snd && s.snd.music) Sound.playMusic(s.snd.music, ()=>setTimeout(next, 600)).then(ok=>{ if(!ok) setTimeout(next, 900); });
+    else if(more) setTimeout(next, 900);
+    else { S.listen = false; Sound.leave(4); }
   });
 }
-function stopListen(){ S.listen = false; Voice.stop(); }
+function stopListen(){ S.listen = false; Voice.stop(); Sound.stopAll(1); }
 
 function updateVoiceUI(){
   const P = Voice.playing;
@@ -283,7 +306,11 @@ async function lockScreen(){
   try{ if("wakeLock" in navigator && S.walk){ S.walk.wake = await navigator.wakeLock.request("screen"); } }catch(e){}
 }
 function releaseScreen(){ try{ S.walk && S.walk.wake && S.walk.wake.release(); }catch(e){} }
-document.addEventListener("visibilitychange", ()=>{ if(S.walk && document.visibilityState === "visible") lockScreen(); });
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState !== "visible") return;
+  if(S.walk) lockScreen();
+  if(Sound.ac && Sound.ac.state !== "running") Sound.ac.resume().catch(()=>{});
+});
 
 function startWalk(demo){
   const h = S.hero; if(!h) return;
@@ -302,9 +329,10 @@ function startWalk(demo){
   if(settings.autoVoice) Voice.unlock(recorded(h) && !introUrl ? null : introText, h, introUrl, "audio/silence.mp3");
   else Voice.unlock(null, h, null, "audio/silence.mp3");
   prefetchAudio(h);
+  if(soundOn()) Sound.prefetch(soundUrls(h));
   lockScreen();
   if(MAP) MAP.follow(true);
-  if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && S.walk.pending.length), ()=>{});
+  if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && (S.walk.pending.length || S.walk.linger)), ()=>{});
   else Geo.start(onPos, onGeoErr);
   markTarget(); renderDock();
 }
@@ -312,8 +340,9 @@ function startWalk(demo){
 function endWalk(silent){
   if(!S.walk) return;
   Geo.stop(); releaseScreen();
+  clearLinger(S.walk);
   S.walk = null;
-  Voice.stop();
+  Voice.stop(); Sound.stopAll(1.5);
   showMe(null);
   if(MAP) MAP.follow(false);
   document.body.classList.remove("walking");
@@ -354,21 +383,53 @@ function arrive(i){
   w.target = nextTarget();
   if(settings.vibrate && navigator.vibrate){ try{ navigator.vibrate([90,60,90]); }catch(e){} }
   setActive(i, true);
+  clearLinger(w);
   if(settings.autoVoice){
     if(Voice.playing) w.pending.push(i); else playInWalk(i);
-  } else if(w.target < 0) finishWalk();
+  } else {
+    Sound.stopMusic(2);
+    if(soundOn()) Sound.enter(w.stops[i].snd);
+    startLinger(i);
+  }
   markTarget(); renderDock();
 }
 
 function playInWalk(i){
   const w = S.walk; const s = w.stops[i];
-  Voice.say(w.hero, i, s.title, s.voice, audioFor(w.hero, i), null);
+  Sound.stopMusic(2);
+  if(soundOn()) Sound.enter(s.snd);
+  Voice.say(w.hero, i, s.title, s.voice, audioFor(w.hero, i), ()=>{ if(S.walk === w && !w.pending.length) startLinger(i); });
+}
+
+// Пауза «Осмотритесь»: герой договорил, фон и музыка звучат, пока человек разглядывает место
+function startLinger(i){
+  const w = S.walk; if(!w || w.finished) return;
+  clearLinger(w);
+  const s = w.stops[i];
+  const L = w.linger = {i, k:0, until: Date.now() + (w.demo ? 7000 : (s.stay||10)*60000)};
+  L.timer = setInterval(()=>{ if(w.linger !== L) return; L.k++; renderDock(); }, 12000);
+  if(w.demo) L.demoEnd = setTimeout(()=>{ if(w.linger === L) endLinger(); }, 7000);
+  if(settings.sound && s.snd && s.snd.music) Sound.playMusic(s.snd.music);
+  const tab = $(`#stop-${i} [data-tab="look"]`); if(tab) tab.click();
+  renderDock();
+}
+function clearLinger(w){
+  if(!w || !w.linger) return;
+  clearInterval(w.linger.timer); clearTimeout(w.linger.demoEnd);
+  w.linger = null;
+}
+function endLinger(){
+  const w = S.walk; if(!w) return;
+  clearLinger(w);
+  Sound.stopAll(4);
+  if(w.target < 0 && !w.finished) finishWalk();
+  renderDock();
 }
 
 function onVoiceIdle(){
   const w = S.walk; if(!w || Voice.playing) return;
   if(w.pending.length){ playInWalk(w.pending.shift()); return; }
-  if(w.target < 0 && !w.finished) finishWalk();
+  if(w.target < 0 && !w.finished && !w.linger) finishWalk();
 }
 
 function finishWalk(){
@@ -410,6 +471,14 @@ function renderDock(){
     } else if(P && P.key === "epilogue"){
       main = t("afterDay"); sub = w.hero.epilogue;
       acts.push(dockBtn("voice-stop", t("stopVoice"), "stop"));
+    } else if(w.linger && !w.finished){
+      const L = w.linger, s = st[L.i], look = s.look || [];
+      const left = Math.ceil((L.until - Date.now())/60000);
+      main = t("lingerTitle", {title:s.title});
+      sub = `<span class="dock-look">${ICON.eye}<span>${look.length ? look[L.k % look.length] : ""}</span></span>`
+        + `<small class="dock-meta">${left > 0 ? t("lingerLeft", {n:left}) : t("lingerDone")}${Sound.music ? " · ♪ "+musicTitle(Sound.music.name) : ""}</small>`;
+      acts.push(dockBtn("linger-end", w.target >= 0 ? t("goOn") : t("finish"), "walk", true));
+      acts.push(dockBtn("sound-toggle", settings.sound ? t("soundMute") : t("soundUnmute"), "note"));
     } else if(w.finished || w.target < 0){
       main = t("dayDone");
       sub = t("dayDoneText", {...heroVars(w.hero), epilogue:w.hero.epilogue});
@@ -450,13 +519,28 @@ function renderDock(){
     d.hidden = false;
     return;
   }
+  if(Sound.music && S.hero){
+    d.className = `dock player h-${S.hero.id}`;
+    d.innerHTML = `<div class="dock-in row">
+      <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="dock-main"><b>${S.hero.short}${S.listen?t("wholeDay"):""}</b><span>♪ ${musicTitle(Sound.music.name)}</span></div>
+      ${dockBtn(S.listen ? "player-stop" : "music-stop", t("stop"), "stop", true)}</div>`;
+    d.hidden = false;
+    return;
+  }
   d.hidden = true; d.innerHTML = "";
 }
 
 $("#dock").addEventListener("click", e=>{
   const b = e.target.closest("[data-act]"); if(!b) return;
   const act = b.dataset.act;
-  if(act === "voice-stop") Voice.stop();
+  if(act === "voice-stop"){
+    const P = Voice.playing; Voice.stop();
+    if(S.walk && P && typeof P.key === "number" && !S.walk.pending.length && !S.walk.linger) startLinger(P.key);
+  }
+  else if(act === "linger-end") endLinger();
+  else if(act === "sound-toggle"){ settings.sound = !settings.sound; save(K.settings, settings); Sound.setEnabled(settings.sound); if(settings.sound && S.walk && S.walk.linger && soundOn()) Sound.enter(S.walk.stops[S.walk.linger.i].snd); renderDock(); }
+  else if(act === "music-stop") Sound.stopMusic(1);
   else if(act === "walk-end") endWalk();
   else if(act === "arrive" && S.walk && S.walk.target >= 0) arrive(S.walk.target);
   else if(act === "demo"){ endWalk(true); startWalk(true); }
@@ -594,6 +678,7 @@ function footer(){
     ${DECO}
     <p>${t("footer1", {v:APP_VERSION})}</p>
     <p>${t("footer2")}</p>
+    <p>${t("footer3")}</p>
   </footer>`;
 }
 
@@ -665,7 +750,7 @@ function renderHero(h, keepScroll){
   </div>
   </div>`;
   wireHero(h);
-  refreshMarks(); markTarget(); updateVoiceUI();
+  refreshMarks(); markTarget(); updateVoiceUI(); updateMusicUI();
   mountMap(h, stops);
   if(keepScroll) window.scrollTo({top:y, behavior:"instant"});
 }
@@ -702,9 +787,15 @@ function stopHTML(h, s, i, leg){
         <div class="tabs" role="tablist">
           <button type="button" role="tab" aria-selected="true" data-tab="fact">${t("factLabel")}</button>
           <button type="button" role="tab" aria-selected="false" data-tab="now">${t("nowLabel")}</button>
+          ${s.look ? `<button type="button" role="tab" aria-selected="false" data-tab="look">${t("lookTab")}</button>` : ""}
         </div>
         <p data-pane="fact">${s.fact}</p>
         <p data-pane="now" hidden>${s.now}</p>
+        ${s.look ? `<div data-pane="look" class="look" hidden>
+          <ul>${s.look.map(x=>`<li>${x}</li>`).join("")}</ul>
+          <p class="stay">${ICON.eye}${t("stayFor", {n:s.stay||10})}</p>
+          ${s.snd && s.snd.music ? `<button class="btn small" type="button" data-music="${s.snd.music}" aria-pressed="false">${ICON.note}${t("playMusic")}: ${musicTitle(s.snd.music)}</button>` : ""}
+        </div>` : ""}
       </div>
     </div>
   </article>`;
@@ -739,10 +830,17 @@ function wireHero(h){
   $$("[data-speak]").forEach(b=>b.addEventListener("click", e=>{
     e.stopPropagation(); const i = +b.dataset.speak;
     const P = Voice.playing;
-    if(P && sameHero(P.hero, h) && P.key === i){ Voice.stop(); S.listen = false; return; }
+    if(P && sameHero(P.hero, h) && P.key === i){ Voice.stop(); S.listen = false; if(!S.walk) Sound.leave(2); return; }
     Voice.broken = false;
     if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.voice, audioFor(S.walk.hero, i), null); }
     else listen(h, i, false);
+  }));
+  $$("[data-music]").forEach(b=>b.addEventListener("click", e=>{
+    e.stopPropagation();
+    if(Sound.music && Sound.music.name === b.dataset.music){ Sound.stopMusic(1); return; }
+    if(!Sound.unlock(Voice._ac)) return;
+    if(!settings.sound){ settings.sound = true; save(K.settings, settings); Sound.setEnabled(true); }
+    Sound.playMusic(b.dataset.music);
   }));
   $$("[data-visit]").forEach(b=>b.addEventListener("click", e=>{
     e.stopPropagation(); const i = +b.dataset.visit;
@@ -837,6 +935,7 @@ function openSettings(){
       <small>${(RECORDINGS[lang()]||[]).length ? t("voiceRecorded")+" " : ""}${t("set_voiceNote")}</small>
     </div>` : ""}
     <label class="sw"><input type="checkbox" id="set-autoVoice" ${settings.autoVoice?"checked":""}><span><b>${t("set_autoVoice")}</b><small>${t("set_autoVoiceDesc")}</small></span></label>
+    <label class="sw"><input type="checkbox" id="set-sound" ${settings.sound?"checked":""}><span><b>${t("set_sound")}</b><small>${t("set_soundDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-vibrate" ${settings.vibrate?"checked":""}><span><b>${t("set_vibrate")}</b><small>${t("set_vibrateDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-calibrate" ${settings.calibrate?"checked":""}><span><b>${t("set_calib")}</b><small>${t("set_calibDesc")}</small></span></label>
     <div class="set-voice"><b>${t("set_palette")}</b>
@@ -862,8 +961,9 @@ function openSettings(){
   const bind = (id, key)=>$("#"+id, dlg).addEventListener("change", e=>{
     settings[key] = e.target.checked; save(K.settings, settings);
     if(key === "calibrate" && S.hero) renderHero(S.hero, true);
+    if(key === "sound") Sound.setEnabled(settings.sound);
   });
-  bind("set-autoVoice","autoVoice"); bind("set-vibrate","vibrate"); bind("set-calibrate","calibrate");
+  bind("set-autoVoice","autoVoice"); bind("set-sound","sound"); bind("set-vibrate","vibrate"); bind("set-calibrate","calibrate");
   $("#set-reset", dlg).addEventListener("click", ()=>{
     visited = {}; save(K.visited, visited);
     if(S.walk){ S.walk.done.clear(); S.walk.target = nextTarget(); }

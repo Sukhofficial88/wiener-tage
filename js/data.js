@@ -9,54 +9,59 @@ export const HEROES = [
   id:"mozart", mono:"WAM", sphere:"music", years:"1756–1791", vienna:[[1781, 1791]], dayYear:1786,
   voice:{rate:1.07,pitch:1.12},
   stops:[
-    {time:"07:00", addr:"Domgasse 5, 1010 Wien", lat:48.20819, lng:16.37485, radius:40},
-    {time:"09:00", addr:"Stephansplatz 3, 1010 Wien", lat:48.20861, lng:16.37306, radius:80},
-    {time:"11:00", addr:"Neuer Markt 5, 1010 Wien", lat:48.20625, lng:16.37080, radius:55, approx:true},
-    {time:"13:00", addr:"Graben 29, 1010 Wien", lat:48.20900, lng:16.37050, radius:55, approx:true},
-    {time:"15:00", addr:"Kohlmarkt 9, 1010 Wien", lat:48.20860, lng:16.36780, radius:45, approx:true},
-    {time:"19:00", addr:"Michaelerplatz, 1010 Wien", lat:48.20806, lng:16.36722, radius:55}
+    {time:"07:00", stay:10, snd:{bed:[["birds",0.7],["bells",0.35]],music:"k265"}, addr:"Domgasse 5, 1010 Wien", lat:48.20819, lng:16.37485, radius:40},
+    {time:"09:00", stay:15, snd:{bed:[["bells",0.9],["murmur",0.5],["carriage",0.4]]}, addr:"Stephansplatz 3, 1010 Wien", lat:48.20861, lng:16.37306, radius:80},
+    {time:"11:00", stay:10, snd:{bed:[["fountain",0.8],["murmur",0.5],["carriage",0.5]]}, addr:"Neuer Markt 5, 1010 Wien", lat:48.20625, lng:16.37080, radius:55, approx:true},
+    {time:"13:00", stay:10, snd:{bed:[["murmur",0.6],["fountain",0.4],["carriage",0.5]],music:"k525"}, addr:"Graben 29, 1010 Wien", lat:48.20900, lng:16.37050, radius:55, approx:true},
+    {time:"15:00", stay:10, snd:{bed:[["carriage",0.7],["murmur",0.6]]}, addr:"Kohlmarkt 9, 1010 Wien", lat:48.20860, lng:16.36780, radius:45, approx:true},
+    {time:"19:00", stay:15, snd:{bed:[["murmur",0.7],["carriage",0.3]],music:"applause"}, addr:"Michaelerplatz, 1010 Wien", lat:48.20806, lng:16.36722, radius:55}
   ]
 },
 {
   id:"beethoven", mono:"LvB", sphere:"music", years:"1770–1827", vienna:[[1792, 1827]], dayYear:1802,
   voice:{rate:0.9,pitch:0.78},
   stops:[
-    {time:"07:00", addr:"Probusgasse 6, 1190 Wien", lat:48.25484, lng:16.35619, radius:40},
-    {time:"09:00", addr:"Pfarrplatz 3, 1190 Wien", lat:48.25481, lng:16.35900, radius:55},
-    {time:"11:00", addr:"Eroicagasse, 1190 Wien", lat:48.25670, lng:16.35780, radius:90, approx:true, moment:"hearing"},
-    {time:"13:00", addr:"Beethovengang, 1190 Wien", lat:48.25893, lng:16.35189, radius:60},
-    {time:"20:00", addr:"Probusgasse 6, 1190 Wien", lat:48.25484, lng:16.35619, radius:40}
+    {time:"07:00", stay:10, snd:{bed:[["birds",0.8],["bell-village",0.3]],music:"elise"}, addr:"Probusgasse 6, 1190 Wien", lat:48.25484, lng:16.35619, radius:40},
+    {time:"09:00", stay:10, snd:{bed:[["bell-village",0.8],["birds",0.5]]}, addr:"Pfarrplatz 3, 1190 Wien", lat:48.25481, lng:16.35900, radius:55},
+    {time:"11:00", stay:10, snd:{bed:[["leaves",0.9],["birds",0.6]]}, addr:"Eroicagasse, 1190 Wien", lat:48.25670, lng:16.35780, radius:90, approx:true, moment:"hearing"},
+    {time:"13:00", stay:20, snd:{bed:[["stream",0.9],["birds",0.7],["leaves",0.4]]}, addr:"Beethovengang, 1190 Wien", lat:48.25893, lng:16.35189, radius:60},
+    {time:"20:00", stay:10, snd:{bed:[["fireplace",0.8],["bell-toll",0.25]]}, addr:"Probusgasse 6, 1190 Wien", lat:48.25484, lng:16.35619, radius:40}
   ]
 },
 {
   id:"klimt", mono:"GK", sphere:"painting", years:"1862–1918", vienna:[[1862, 1918]], dayYear:1908,
   voice:{rate:0.95,pitch:0.92},
   stops:[
-    {time:"06:00", addr:"Westbahnstraße 36, 1070 Wien", lat:48.20060, lng:16.34200, radius:80, approx:true},
-    {time:"07:00", addr:"Tivoligasse, 1120 Wien", lat:48.17960, lng:16.32400, radius:150, approx:true, transit:true},
-    {time:"09:00", addr:"Josefstädter Straße 21, 1080 Wien", lat:48.21015, lng:16.35220, radius:70, approx:true, transit:true},
-    {time:"13:00", addr:"Mariahilfer Straße 1b, 1060 Wien", lat:48.20100, lng:16.36030, radius:60, approx:true},
-    {time:"15:00", addr:"Friedrichstraße 12, 1010 Wien", lat:48.20052, lng:16.36568, radius:45},
-    {time:"18:00", addr:"Operngasse 7, 1010 Wien", lat:48.20151, lng:16.36755, radius:40},
-    {time:"20:00", addr:"Lothringerstraße 20, 1030 Wien", lat:48.20070, lng:16.37700, radius:60}
+    {time:"06:00", stay:5, snd:{bed:[["birds",0.6],["carriage",0.35],["tram",0.35]]}, addr:"Westbahnstraße 36, 1070 Wien", lat:48.20060, lng:16.34200, radius:80, approx:true},
+    {time:"07:00", stay:15, snd:{bed:[["cafe",0.6],["birds",0.7]]}, addr:"Tivoligasse, 1120 Wien", lat:48.17960, lng:16.32400, radius:150, approx:true, transit:true},
+    {time:"09:00", stay:10, snd:{bed:[["birds",0.8],["leaves",0.6]]}, addr:"Josefstädter Straße 21, 1080 Wien", lat:48.21015, lng:16.35220, radius:70, approx:true, transit:true},
+    {time:"13:00", stay:10, snd:{bed:[["carriage",0.5],["tram",0.5],["murmur",0.5]]}, addr:"Mariahilfer Straße 1b, 1060 Wien", lat:48.20100, lng:16.36030, radius:60, approx:true},
+    {time:"15:00", stay:20, snd:{bed:[["murmur",0.5],["carriage",0.4]],music:"ode"}, addr:"Friedrichstraße 12, 1010 Wien", lat:48.20052, lng:16.36568, radius:45},
+    {time:"18:00", stay:20, snd:{bed:[["cafe",0.9]]}, addr:"Operngasse 7, 1010 Wien", lat:48.20151, lng:16.36755, radius:40},
+    {time:"20:00", stay:10, snd:{bed:[["hammer",0.7],["murmur",0.3]]}, addr:"Lothringerstraße 20, 1030 Wien", lat:48.20070, lng:16.37700, radius:60}
   ]
 },
 {
   id:"freud", mono:"SF", sphere:"science", years:"1856–1939", vienna:[[1860, 1938]], dayYear:1907,
   voice:{rate:0.96,pitch:0.86},
   stops:[
-    {time:"07:00", addr:"Berggasse 19, 1090 Wien", lat:48.21861, lng:16.36311, radius:40},
-    {time:"13:45", addr:"Rooseveltplatz, 1090 Wien", lat:48.21500, lng:16.35980, radius:70},
-    {time:"14:05", addr:"Universitätsring 1, 1010 Wien", lat:48.21300, lng:16.36050, radius:60},
-    {time:"14:20", addr:"Universitätsring 4, 1010 Wien", lat:48.21167, lng:16.36139, radius:40},
-    {time:"14:40", addr:"Schottenring 7, 1010 Wien", lat:48.21570, lng:16.36440, radius:60, approx:true},
-    {time:"21:00", addr:"Berggasse 19, 1090 Wien", lat:48.21861, lng:16.36311, radius:40}
+    {time:"07:00", stay:10, snd:{bed:[["clock",0.9],["birds",0.3]]}, addr:"Berggasse 19, 1090 Wien", lat:48.21861, lng:16.36311, radius:40},
+    {time:"13:45", stay:10, snd:{bed:[["carriage",0.6],["tram",0.5],["bells",0.35]]}, addr:"Rooseveltplatz, 1090 Wien", lat:48.21500, lng:16.35980, radius:70},
+    {time:"14:05", stay:15, snd:{bed:[["fountain",0.7],["murmur",0.6]]}, addr:"Universitätsring 1, 1010 Wien", lat:48.21300, lng:16.36050, radius:60},
+    {time:"14:20", stay:20, snd:{bed:[["cafe",0.9],["carriage",0.2]]}, addr:"Universitätsring 4, 1010 Wien", lat:48.21167, lng:16.36139, radius:40},
+    {time:"14:40", stay:5, snd:{bed:[["carriage",0.5],["bell-toll",0.4],["murmur",0.3]]}, addr:"Schottenring 7, 1010 Wien", lat:48.21570, lng:16.36440, radius:60, approx:true},
+    {time:"21:00", stay:10, snd:{bed:[["clock",0.8],["fireplace",0.5]]}, addr:"Berggasse 19, 1090 Wien", lat:48.21861, lng:16.36311, radius:40}
   ]
 }
 ];
 
 // Готовые аудиозаписи: язык → герои. Файлы: audio/<язык>/<герой>-<номер точки|intro|epilogue>.mp3
 // Английские записи сгенерированы открытой моделью Kokoro-82M (Apache 2.0).
+// Музыка в паузе «Осмотритесь»: наши записи общественного достояния (tools/sound/make-sounds.py)
+export const MUSIC = {
+  k265:{year:"1781–1782"}, k525:{year:"1787"}, elise:{year:"1810"}, ode:{year:"1824"}, applause:{}
+};
+
 export const RECORDINGS = { en: ["mozart","beethoven","klimt","freud"] };
 
 export const UPCOMING = [

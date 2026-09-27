@@ -413,6 +413,16 @@ h3,h4{font-family:var(--f-title)}
 .tabs button{border:0;background:none;padding:2px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:1.5px solid transparent}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--deco)}
 .facts p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+/* «Осмотритесь»: что видно на месте сегодня */
+.look ul{margin:2px 0 6px;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.look li{position:relative;padding-left:16px;font-size:13.5px;color:var(--ink-2);line-height:1.45}
+.look li::before{content:"";position:absolute;left:2px;top:.55em;width:6px;height:6px;background:var(--deco);transform:rotate(45deg)}
+.look .stay{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:var(--hc);letter-spacing:.02em}
+.look .stay svg,.dock-look svg{width:14px;height:14px;flex:none}
+.look .btn[aria-pressed="true"]{background:color-mix(in srgb,var(--hc) 12%,transparent)}
+.dock-look{display:flex;gap:6px;align-items:flex-start}
+.dock-look svg{margin-top:2px;color:var(--hc)}
+.dock-meta{display:block;margin-top:3px;font-size:11px;color:var(--muted);letter-spacing:.02em}
 .calib{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 10px;border:1px dashed var(--line-strong)}
 .cal-ok{font-size:12.5px;color:var(--ok)} .cal-approx{font-size:12.5px;color:var(--warn)} .cal-muted{font-size:12.5px;color:var(--muted)}
 .leg{margin-left:22px;border-left:1.5px solid var(--hc);padding:6px 0 6px 14px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
