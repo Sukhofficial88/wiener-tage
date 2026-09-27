@@ -1,0 +1,25 @@
+16:11:09 mozart bbox 48.19925,16.35622,48.216,16.38585
+16:11:22 mozart/base https://overpass-api.de/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 12s
+16:12:49 mozart/base ok https://overpass.private.coffee/api/interpreter 6944 elements 5.6MB 79s
+16:13:08 mozart/buildings https://overpass-api.de/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 9s
+16:16:25 mozart/buildings ok https://overpass.private.coffee/api/interpreter 1226 elements 2.2MB 189s
+16:16:44 mozart legs 153m 440m 408m 303m 108m
+16:16:44 beethoven bbox 48.24881,16.33989,48.26493,16.371
+16:16:53 beethoven/base https://overpass-api.de/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 9s
+16:18:22 beethoven/base https://overpass.private.coffee/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 81s
+16:19:11 beethoven/base https://maps.mail.ru/osm/tools/overpass/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 41s
+16:20:44 beethoven/base ok https://overpass.kumi.systems/api/interpreter 2360 elements 1.9MB 86s
+16:20:59 beethoven/buildings ok https://overpass-api.de/api/interpreter 1820 elements 1.7MB 5s
+16:21:16 beethoven legs 221m 467m 628m 770m
+16:21:16 klimt bbox 48.1746,16.315,48.21515,16.386
+16:21:26 klimt/base ok https://overpass-api.de/api/interpreter 28899 elements 22.7MB 9s
+16:21:40 klimt/buildings ok https://overpass-api.de/api/interpreter 4403 elements 6.6MB 4s
+16:21:57 klimt legs - - 1492m 559m 270m 940m
+16:21:57 freud bbox 48.20367,16.3478,48.22661,16.3764
+16:22:05 freud/base https://overpass-api.de/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 8s
+16:23:50 freud/base ok https://overpass.private.coffee/api/interpreter 7021 elements 5.5MB 96s
+16:24:08 freud/buildings https://overpass-api.de/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 8s
+16:25:35 freud/buildings https://overpass.private.coffee/api/interpreter HTTP 504 <?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> <html x 79s
+16:25:56 freud/buildings ok https://maps.mail.ru/osm/tools/overpass/api/interpreter 1233 elements 2.0MB 13s
+16:26:15 freud legs 617m 380m 263m 595m 541m
+16:26:15 done
