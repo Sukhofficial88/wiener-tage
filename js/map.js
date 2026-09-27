@@ -1,6 +1,7 @@
 // Схема маршрута: SVG в метрической проекции, без тайлов, поэтому работает офлайн.
 import { CTX } from "./data.js";
 import { dist } from "./geo.js";
+import { t, fmtNum } from "./i18n.js";
 
 const W = 600, H = 460, PAD = 46;
 let proj = null;
@@ -21,16 +22,16 @@ export function mapSVG(h, pts){
   const stopXY = pts.map(p=>P(p.lat,p.lng));
   const far = (xy,min)=>stopXY.every(q=>Math.hypot(q[0]-xy[0], q[1]-xy[1]) > min);
 
-  let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Схема маршрута: ${h.dayTitle}">
+  let g = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("mapAria",{title:h.dayTitle})}">
     <defs><clipPath id="clip"><rect width="${W}" height="${H}" rx="2"/></clipPath>
     <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" class="m-grid"/></pattern></defs>
     <rect class="m-bg" width="${W}" height="${H}"/><rect width="${W}" height="${H}" fill="url(#dots)"/>
     <g clip-path="url(#clip)">`;
   CTX.parks.forEach(p=>{ g += `<path class="m-park" d="${path(p.pts)}Z"/>`; });
   g += `<path class="m-water" d="${path(CTX.canal)}"/><path class="m-water" d="${path(CTX.wien)}"/><path class="m-brook" d="${path(CTX.brook)}"/><path class="m-ring" d="${path(CTX.ring)}"/>`;
-  CTX.labels.forEach(l=>{ const at = l.at.map(c=>P(c[0],c[1])).find(xy=>inView(xy,40) && far(xy,40)); if(at) g += `<text class="m-ctx" x="${at[0]}" y="${at[1]}" text-anchor="middle">${l.t}</text>`; });
-  CTX.parks.forEach(p=>{ const c = P((p.pts[0][0]+p.pts[2][0])/2, (p.pts[0][1]+p.pts[1][1])/2); if(inView(c,30) && far(c,40)) g += `<text class="m-ctx" x="${c[0]}" y="${c[1]+22}" text-anchor="middle">${p.name}</text>`; });
-  CTX.landmarks.forEach(l=>{ const xy = P(l.lat,l.lng); if(inView(xy,24) && far(xy,34)) g += `<circle class="m-lmdot" cx="${xy[0]}" cy="${xy[1]}" r="2.2"/><text class="m-lm" x="${xy[0]+6}" y="${xy[1]+4}">${l.t}</text>`; });
+  CTX.labels.forEach(l=>{ const at = l.at.map(c=>P(c[0],c[1])).find(xy=>inView(xy,40) && far(xy,40)); if(at) g += `<text class="m-ctx" x="${at[0]}" y="${at[1]}" text-anchor="middle">${t("map_"+l.k)}</text>`; });
+  CTX.parks.forEach(p=>{ const c = P((p.pts[0][0]+p.pts[2][0])/2, (p.pts[0][1]+p.pts[1][1])/2); if(inView(c,30) && far(c,40)) g += `<text class="m-ctx" x="${c[0]}" y="${c[1]+22}" text-anchor="middle">${t("map_"+p.k)}</text>`; });
+  CTX.landmarks.forEach(l=>{ const xy = P(l.lat,l.lng); if(inView(xy,24) && far(xy,34)) g += `<circle class="m-lmdot" cx="${xy[0]}" cy="${xy[1]}" r="2.2"/><text class="m-lm" x="${xy[0]+6}" y="${xy[1]+4}">${t("lm_"+l.k)}</text>`; });
   pts.forEach((p,i)=>{ if(!i) return; const a = stopXY[i-1], b = stopXY[i]; g += `<line class="m-route${p.go?" transit":""}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`; });
   // Геозоны: пунктирный круг радиуса срабатывания
   pts.forEach((p,i)=>{ const [x,y] = stopXY[i]; g += `<circle class="m-zone" cx="${x}" cy="${y}" r="${Math.max(12,(p.radius||45)*s)}"/>`; });
@@ -57,8 +58,8 @@ export function mapSVG(h, pts){
   const target = 110/s; const m = nice.reduce((a,b)=>Math.abs(b-target) < Math.abs(a-target) ? b : a);
   const sw = m*s, sy = H-18;
   g += `<g><line class="m-scale" x1="16" y1="${sy}" x2="${16+sw}" y2="${sy}"/><line class="m-scale" x1="16" y1="${sy-4}" x2="16" y2="${sy+4}"/><line class="m-scale" x1="${16+sw}" y1="${sy-4}" x2="${16+sw}" y2="${sy+4}"/>
-    <text class="m-scale-t" x="${16+sw+6}" y="${sy+4}">${m>=1000?(m/1000)+" км":m+" м"}</text></g>`;
-  g += `<g transform="translate(${W-22},24)"><path d="M0 -12 L6 6 L0 2 L-6 6 Z" fill="var(--ink-2)"/><text class="m-north" x="0" y="20" text-anchor="middle">С</text></g>`;
+    <text class="m-scale-t" x="${16+sw+6}" y="${sy+4}">${m>=1000?t("u_km",{n:fmtNum(m/1000)}):t("u_m",{n:m})}</text></g>`;
+  g += `<g transform="translate(${W-22},24)"><path d="M0 -12 L6 6 L0 2 L-6 6 Z" fill="var(--ink-2)"/><text class="m-north" x="0" y="20" text-anchor="middle">${t("north")}</text></g>`;
   return g + `</svg>`;
 }
 

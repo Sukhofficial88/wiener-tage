@@ -1,33 +1,34 @@
-import { HEROES, UPCOMING, LINKS, HOW } from "./data.js";
+import { HEROES as BASE_HEROES, UPCOMING as BASE_UPCOMING, LINKS as BASE_LINKS } from "./data.js";
+import { LANGS, detectLang, setLang, lang, langInfo, t, tp, fmtNum } from "./i18n.js";
+import ru from "./content/ru.js";
+import de from "./content/de.js";
+import en from "./content/en.js";
+import fr from "./content/fr.js";
+import it from "./content/it.js";
+import es from "./content/es.js";
 import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe } from "./map.js";
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
+const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
 const $ = (s, el=document)=>el.querySelector(s);
 const $$ = (s, el=document)=>[...el.querySelectorAll(s)];
 const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-const ALL = [...HEROES, ...UPCOMING];
-const byId = id => ALL.find(h=>h.id===id);
 
-const km = m => (m/1000).toFixed(1).replace(".", ",");
-const fmtDist = m => m >= 1000 ? km(m)+" км" : Math.max(10, Math.round(m/10)*10)+" м";
+const km = m => fmtNum(m/1000, 1);
+const fmtDist = m => m >= 1000 ? t("u_km", {n:km(m)}) : t("u_m", {n:Math.max(10, Math.round(m/10)*10)});
 function fmtMin(min){
   min = Math.max(10, Math.round(min/10)*10);
   const h = Math.floor(min/60), m = min%60;
-  return h ? (m ? `${h} ч ${m} мин` : `${h} ч`) : `${m} мин`;
+  return h ? (m ? t("u_hm", {h, m}) : t("u_h", {n:h})) : t("u_min", {n:m});
 }
-function plural(n, one, few, many){
-  const a = n%10, b = n%100;
-  if(a===1 && b!==11) return one;
-  if(a>=2 && a<=4 && (b<12 || b>14)) return few;
-  return many;
-}
+const countWord = (key, n)=> `${fmtNum(n)} ${tp(key, n)}`;
 
 /* ============================ storage ============================ */
-const K = {visited:"wt-visited-v1", settings:"wt-settings-v1", overrides:"wt-overrides-v1", install:"wt-install-hidden"};
+const K = {visited:"wt-visited-v1", settings:"wt-settings-v1", overrides:"wt-overrides-v1", install:"wt-install-hidden", lang:"wt-lang"};
 function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
@@ -40,16 +41,37 @@ function setVisited(id, i, v){
   const a = new Set(visited[id]||[]); v ? a.add(i) : a.delete(i);
   visited[id] = [...a].sort((x,y)=>x-y); save(K.visited, visited);
 }
+
+/* ============================ локализованные данные ============================ */
+let LOC = null;
+function localize(){
+  const c = CONTENT[lang()] || CONTENT.en;
+  const heroes = BASE_HEROES.map(h=>{
+    const tx = c.heroes[h.id];
+    return {...h, ...tx, stops: h.stops.map((s,i)=>{ const o = {...s, ...tx.stops[i]}; if(!s.transit) delete o.go; return o; })};
+  });
+  LOC = {
+    heroes,
+    upcoming: BASE_UPCOMING.map(u=>({...u, ...c.upcoming[u.id]})),
+    links: BASE_LINKS.map((l,i)=>({...l, ...c.links[i]})),
+    how: c.how
+  };
+}
+const heroById = id => LOC.heroes.find(h=>h.id===id);
+const anyById = id => heroById(id) || LOC.upcoming.find(u=>u.id===id);
+const isActiveHero = id => !!heroById(id);
+const heroVars = h => ({short:h.short, ins:h.ins || h.short, gen:h.gen || h.short, name:h.name});
+const audioFor = s => !s.audio ? null : (typeof s.audio === "string" ? s.audio : (s.audio[lang()] || null));
+
 function stopsOf(h){
   const o = overrides[h.id] || {};
   return h.stops.map((s,i)=> o[i] ? {...s, lat:o[i].lat, lng:o[i].lng, calibrated:true} : s);
 }
-
 function legs(stops){
   return stops.map((s,i)=>{
     if(!i) return null;
     const d = dist(stops[i-1], s);
-    return {d, walk:d*1.3, transit:!!s.go, same:d<25};
+    return {d, walk:d*1.3, transit:!!s.transit, same:d<25};
   });
 }
 function dayStats(h){
@@ -59,12 +81,13 @@ function dayStats(h){
   const places = new Set(st.map(s=>s.addr)).size;
   return {walkM, transit, places, minutes: walkM/75 + st.length*12 + transit*35};
 }
-const mapsSearch = addr => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr);
-const mapsNav = s => "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(s.addr)+"&travelmode="+(s.go?"transit":"walking");
+const gmapsLang = ()=>"&hl="+lang();
+const mapsSearch = addr => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr)+gmapsLang();
+const mapsNav = s => "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(s.addr)+"&travelmode="+(s.transit?"transit":"walking")+gmapsLang();
 function mapsRoute(stops){
   const a = []; stops.forEach(s=>{ if(a[a.length-1] !== s.addr) a.push(s.addr); });
   const o = a[0], d = a[a.length-1], w = a.slice(1,-1);
-  return "https://www.google.com/maps/dir/?api=1&travelmode=walking&origin="+encodeURIComponent(o)+"&destination="+encodeURIComponent(d)+(w.length?"&waypoints="+encodeURIComponent(w.join("|")):"");
+  return "https://www.google.com/maps/dir/?api=1&travelmode=walking&origin="+encodeURIComponent(o)+"&destination="+encodeURIComponent(d)+(w.length?"&waypoints="+encodeURIComponent(w.join("|")):"")+gmapsLang();
 }
 
 const ICON = {
@@ -89,12 +112,12 @@ function monogram(h, size){
 }
 
 function toast(msg, actionLabel, action, ms){
-  const t = $("#toast");
-  t.innerHTML = `<span>${msg}</span>${actionLabel?`<button class="btn small solid" type="button">${actionLabel}</button>`:""}`;
-  t.hidden = false;
-  if(actionLabel) t.querySelector("button").onclick = ()=>{ t.hidden = true; action(); };
+  const el = $("#toast");
+  el.innerHTML = `<span>${msg}</span>${actionLabel?`<button class="btn small solid" type="button">${actionLabel}</button>`:""}`;
+  el.hidden = false;
+  if(actionLabel) el.querySelector("button").onclick = ()=>{ el.hidden = true; action(); };
   clearTimeout(toast.tm);
-  if(ms !== 0) toast.tm = setTimeout(()=>{ t.hidden = true; }, ms || 4500);
+  if(ms !== 0) toast.tm = setTimeout(()=>{ el.hidden = true; }, ms || 4500);
 }
 
 const isStandalone = ()=> (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
@@ -102,18 +125,61 @@ const isIOS = ()=> /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.p
 
 /* ============================ state ============================ */
 const S = {hero:null, active:-1, walk:null, listen:false, installEvt:null, lastPos:null};
+const sameHero = (a, b)=> !!a && !!b && a.id === b.id;
+
+/* ============================ язык ============================ */
+function applyLanguage(code){
+  setLang(code);
+  localize();
+  Voice.setLang(langInfo().tts);
+  document.title = t("appName");
+  const md = $('meta[name="description"]'); if(md) md.setAttribute("content", t("docDesc"));
+  renderChrome();
+}
+function changeLanguage(code){
+  if(code === lang()) return;
+  save(K.lang, code);
+  const heroId = S.hero && S.hero.id;
+  S.listen = false; Voice.stop();
+  if(Hear.on) Hear.stop();
+  applyLanguage(code);
+  if(S.walk){ S.walk.hero = heroById(S.walk.hero.id); S.walk.stops = stopsOf(S.walk.hero); }
+  if(heroId) renderHero(heroById(heroId), true);
+  else { const y = window.scrollY; renderHome(); window.scrollTo({top:y, behavior:"instant"}); }
+  renderDock();
+}
+
+function renderChrome(){
+  $("#brand-name").textContent = t("appName");
+  const sub = t("brandSub"); const bs = $("#brand-sub"); bs.textContent = sub; bs.hidden = !sub;
+  $("#nav-heroes").textContent = t("navHeroes");
+  $("#nav-timeline").textContent = t("navTimeline");
+  $("#nav-how").textContent = t("navHow");
+  $("#nav").setAttribute("aria-label", t("navHeroes"));
+  $("#net").textContent = t("offline");
+  $("#pilot").textContent = t("pilot");
+  $("#open-settings").setAttribute("aria-label", t("settingsAria"));
+  $("#settings").setAttribute("aria-label", t("set_title"));
+  const sel = $("#lang-select");
+  sel.setAttribute("aria-label", t("langLabel"));
+  sel.innerHTML = LANGS.map(l=>`<option value="${l.code}" ${l.code===lang()?"selected":""}>${l.name}</option>`).join("");
+}
+$("#lang-select").addEventListener("change", e=>changeLanguage(e.target.value));
 
 /* ============================ voice glue ============================ */
-Voice.init();
+function voiceNote(){
+  if(!Voice.ok) return t("voiceNoTTS");
+  return t("voiceNote", {extra: Voice.hasLang ? "" : t("voiceNoLang")});
+}
 Voice.on(()=>{ setTimeout(onVoiceIdle, 0); updateVoiceUI(); });
 
 function listen(h, i, auto){
   const st = stopsOf(h); const s = st[i]; if(!s) return;
   S.listen = !!auto;
   setActive(i, true);
-  Voice.say(h, i, s.title, s.voice, s.audio||null, ()=>{
-    if(S.listen && i < st.length-1 && S.hero === h){
-      setTimeout(()=>{ if(S.listen && !Voice.playing && S.hero === h) listen(h, i+1, true); }, 900);
+  Voice.say(h, i, s.title, s.voice, audioFor(s), ()=>{
+    if(S.listen && i < st.length-1 && sameHero(S.hero, h)){
+      setTimeout(()=>{ if(S.listen && !Voice.playing && sameHero(S.hero, h)) listen(S.hero, i+1, true); }, 900);
     } else S.listen = false;
   });
 }
@@ -122,13 +188,14 @@ function stopListen(){ S.listen = false; Voice.stop(); }
 function updateVoiceUI(){
   const P = Voice.playing;
   $$(".voice.speaking").forEach(v=>v.classList.remove("speaking"));
-  $$("[data-speak]").forEach(b=>{ b.innerHTML = ICON.play+"Голос героя"; });
-  if(P && S.hero && P.hero === S.hero && typeof P.key === "number"){
+  $$("[data-speak]").forEach(b=>{ b.innerHTML = ICON.play+t("voiceBtn"); });
+  if(P && sameHero(P.hero, S.hero) && typeof P.key === "number"){
     const card = $(`#stop-${P.key}`);
-    if(card){ $(".voice", card)?.classList.add("speaking"); const b = $("[data-speak]", card); if(b) b.innerHTML = ICON.stop+"Остановить"; }
+    if(card){ $(".voice", card)?.classList.add("speaking"); const b = $("[data-speak]", card); if(b) b.innerHTML = ICON.stop+t("stopBtn"); }
   }
   const pd = $("#play-day");
-  if(pd) pd.innerHTML = (P && S.listen) ? ICON.stop+"Остановить" : ICON.play+"Слушать весь день";
+  if(pd) pd.innerHTML = (P && S.listen) ? ICON.stop+t("stopBtn") : ICON.play+t("listenDay");
+  const vn = $("#voice-note"); if(vn) vn.textContent = voiceNote();
   renderDock();
 }
 
@@ -152,9 +219,9 @@ function startWalk(demo){
   if(done.size >= stops.length) done.clear();
   S.walk = {hero:h, stops, demo, done, pending:[], pos:null, err:null, finished:false};
   S.walk.target = nextTarget();
-  const t = stops[S.walk.target];
+  const tg = stops[S.walk.target];
   document.body.classList.add("walking");
-  if(settings.autoVoice) Voice.unlock(`Прогулка ${h.ins} начинается. ${S.walk.target===0?"Первая точка":"Следующая точка"}: ${t.title}.`, h);
+  if(settings.autoVoice) Voice.unlock(t(S.walk.target === 0 ? "introFirst" : "introNext", {...heroVars(h), title:tg.title}), h);
   else Voice.unlock(null);
   lockScreen();
   if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && S.walk.pending.length), ()=>{});
@@ -170,7 +237,7 @@ function endWalk(silent){
   updateMe(null);
   document.body.classList.remove("walking");
   markTarget(); renderDock();
-  if(!silent) toast("Прогулка завершена. Отметки о пройденных местах сохранены.");
+  if(!silent) toast(t("toastWalkEnded"));
 }
 
 function onPos(pos){
@@ -193,10 +260,10 @@ function onPos(pos){
 function onGeoErr(e){ if(!S.walk) return; S.walk.err = e; renderDock(); }
 function geoErrText(e){
   if(!e) return "";
-  if(e.code === 1) return "Нет доступа к геопозиции. Разрешите его для этого сайта в настройках браузера (iPhone: Настройки → Конфиденциальность → Службы геолокации). Если приложение открыто внутри Claude, GPS там недоступен: откройте его по собственному адресу.";
-  if(e.code === 2) return "Телефон не может определить место. Проверьте, что геолокация включена.";
-  if(e.code === 3) return "GPS долго не отвечает, продолжаем искать…";
-  return "Этот браузер не умеет определять геопозицию.";
+  if(e.code === 1) return t("geoErr1");
+  if(e.code === 2) return t("geoErr2");
+  if(e.code === 3) return t("geoErr3");
+  return t("geoErr0");
 }
 
 function arrive(i){
@@ -214,7 +281,7 @@ function arrive(i){
 
 function playInWalk(i){
   const w = S.walk; const s = w.stops[i];
-  Voice.say(w.hero, i, s.title, s.voice, s.audio||null, null);
+  Voice.say(w.hero, i, s.title, s.voice, audioFor(s), null);
 }
 
 function onVoiceIdle(){
@@ -228,12 +295,12 @@ function finishWalk(){
   w.finished = true;
   if(w.demo) Geo.stopDemo();
   renderDock();
-  if(settings.autoVoice) Voice.say(w.hero, "epilogue", "После этого дня", w.hero.epilogue, null, null);
+  if(settings.autoVoice) Voice.say(w.hero, "epilogue", t("afterDay"), w.hero.epilogue, null, null);
 }
 
 function markTarget(){
-  const t = S.walk && !S.walk.finished ? S.walk.target : -1;
-  $$("#map .mk").forEach(g=>g.classList.toggle("tg", g.dataset.i.split(",").map(Number).includes(t)));
+  const tg = S.walk && !S.walk.finished ? S.walk.target : -1;
+  $$("#map .mk").forEach(g=>g.classList.toggle("tg", g.dataset.i.split(",").map(Number).includes(tg)));
 }
 
 /* ============================ dock (нижняя панель) ============================ */
@@ -245,59 +312,59 @@ function renderDock(){
   if(w){
     const st = w.stops;
     let chip, main, sub = "", acts = [];
-    if(w.demo) chip = `<span class="gps demo">Демо</span>`;
-    else if(w.err && w.err.code !== 3 && !w.pos) chip = `<span class="gps bad">GPS недоступен</span>`;
-    else if(!w.pos) chip = `<span class="gps wait">Ищем GPS…</span>`;
-    else chip = `<span class="gps ${w.pos.acc<=30?"ok":w.pos.acc<=120?"weak":"bad"}">GPS ±${Math.round(w.pos.acc)} м</span>`;
+    if(w.demo) chip = `<span class="gps demo">${t("gpsDemo")}</span>`;
+    else if(w.err && w.err.code !== 3 && !w.pos) chip = `<span class="gps bad">${t("gpsNA")}</span>`;
+    else if(!w.pos) chip = `<span class="gps wait">${t("gpsWait")}</span>`;
+    else chip = `<span class="gps ${w.pos.acc<=30?"ok":w.pos.acc<=120?"weak":"bad"}">${t("gpsAcc",{n:Math.round(w.pos.acc)})}</span>`;
 
     if(P && typeof P.key === "number"){
       main = `${P.key+1}. ${st[P.key].title}`;
-      sub = P.simulated ? "Синтез речи недоступен: прочитайте монолог на экране" : "Звучит голос героя";
-      acts.push(dockBtn("voice-stop", "Остановить голос", "stop"));
+      sub = P.simulated ? t("ttsNA") : t("speaking");
+      acts.push(dockBtn("voice-stop", t("stopVoice"), "stop"));
     } else if(P && P.key === "intro"){
-      main = "Прогулка начинается";
-      sub = w.target >= 0 ? `Первая цель: ${w.target+1}. ${st[w.target].title}` : "";
-      acts.push(dockBtn("voice-stop", "Пропустить", "stop"));
+      main = t("walkStarts");
+      sub = w.target >= 0 ? t("firstTarget", {n:w.target+1, title:st[w.target].title}) : "";
+      acts.push(dockBtn("voice-stop", t("skip"), "stop"));
     } else if(P && P.key === "epilogue"){
-      main = "После этого дня"; sub = w.hero.epilogue;
-      acts.push(dockBtn("voice-stop", "Остановить голос", "stop"));
+      main = t("afterDay"); sub = w.hero.epilogue;
+      acts.push(dockBtn("voice-stop", t("stopVoice"), "stop"));
     } else if(w.finished || w.target < 0){
-      main = "День пройден";
-      sub = `Вы побывали во всех местах дня ${w.hero.gen}. ${w.hero.epilogue}`;
+      main = t("dayDone");
+      sub = t("dayDoneText", {...heroVars(w.hero), epilogue:w.hero.epilogue});
     } else if(w.err && w.err.code !== 3 && !w.pos){
-      main = "Нет геопозиции"; sub = geoErrText(w.err);
-      acts.push(dockBtn("demo", "Демо-прогулка", "demo", true));
+      main = t("noGeo"); sub = geoErrText(w.err);
+      acts.push(dockBtn("demo", t("demoWalk"), "demo", true));
     } else {
-      const t = st[w.target];
-      main = `Дальше: ${w.target+1}. ${t.title}`;
+      const tg = st[w.target];
+      main = t("nextStop", {n:w.target+1, title:tg.title});
       if(w.pos){
-        const dm = dist(w.pos, t);
-        if(w.pos.acc > 120) sub = `Сигнал GPS слабый (±${Math.round(w.pos.acc)} м). Выйдите на открытое место.`;
-        else if(dm > 3000) sub = `До точки ${km(dm)} км по прямой. ${w.hero.start}`;
-        else if(dm <= (t.radius||45)*1.6) sub = `Вы почти у цели, ${fmtDist(dm)}. Голос включится, как только подойдёте ближе.`;
-        else sub = `≈ ${fmtDist(dm*1.25)} · ${Math.max(1, Math.round(dm*1.25/75))} мин пешком${t.go?" · этот отрезок удобнее на транспорте":""}`;
-      } else sub = w.err && w.err.code === 3 ? geoErrText(w.err) : "Определяем, где вы…";
-      acts.push(dockBtn("arrive", "Я на месте", "check", true));
-      acts.push(`<a class="btn small" href="${mapsNav(t)}" target="_blank" rel="noopener">${ICON.out}Как пройти</a>`);
+        const dm = dist(w.pos, tg);
+        if(w.pos.acc > 120) sub = t("weakGps", {n:Math.round(w.pos.acc)});
+        else if(dm > 3000) sub = t("farAway", {d:t("u_km",{n:km(dm)}), start:w.hero.start});
+        else if(dm <= (tg.radius||45)*1.6) sub = t("almost", {d:fmtDist(dm)});
+        else sub = t("walkEta", {d:fmtDist(dm*1.25), m:Math.max(1, Math.round(dm*1.25/75))}) + (tg.transit ? t("transitHint") : "");
+      } else sub = w.err && w.err.code === 3 ? geoErrText(w.err) : t("locating");
+      acts.push(dockBtn("arrive", t("arrivedBtn"), "check", true));
+      acts.push(`<a class="btn small" href="${mapsNav(tg)}" target="_blank" rel="noopener">${ICON.out}${t("howToGet")}</a>`);
     }
-    acts.push(dockBtn("walk-end", "Завершить"));
+    acts.push(dockBtn("walk-end", t("finish")));
     d.className = `dock walk h-${w.hero.id}`;
     d.innerHTML = `<div class="dock-in">
-      <div class="dock-top">${chip}<span class="dock-hero">Прогулка ${w.hero.ins}</span></div>
+      <div class="dock-top">${chip}<span class="dock-hero">${t("walkWith", heroVars(w.hero))}</span></div>
       <div class="dock-main"><b>${main}</b><span>${sub}</span></div>
       <div class="dock-actions">${acts.join("")}</div></div>`;
     d.hidden = false;
     return;
   }
   if(P){
-    const h = P.hero;
+    const h = heroById(P.hero.id) || P.hero;
     const title = typeof P.key === "number" ? `${h.stops[P.key].time} · ${P.title}` : P.title;
     const canNext = S.listen && typeof P.key === "number" && P.key < h.stops.length-1;
     d.className = `dock player h-${h.id}`;
     d.innerHTML = `<div class="dock-in row">
       <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="dock-main"><b>${h.short}${S.listen?" · весь день":""}</b><span>${title}${P.simulated?" · читайте текст":""}</span></div>
-      ${canNext?dockBtn("next","Дальше"):""}${dockBtn("player-stop","Стоп","stop",true)}</div>`;
+      <div class="dock-main"><b>${h.short}${S.listen?t("wholeDay"):""}</b><span>${title}${P.simulated?t("readText"):""}</span></div>
+      ${canNext?dockBtn("next", t("next")):""}${dockBtn("player-stop", t("stop"), "stop", true)}</div>`;
     d.hidden = false;
     return;
   }
@@ -312,61 +379,61 @@ $("#dock").addEventListener("click", e=>{
   else if(act === "arrive" && S.walk && S.walk.target >= 0) arrive(S.walk.target);
   else if(act === "demo"){ endWalk(true); startWalk(true); }
   else if(act === "player-stop") stopListen();
-  else if(act === "next" && Voice.playing){ const P = Voice.playing; listen(P.hero, P.key+1, S.listen); }
+  else if(act === "next" && Voice.playing){ const P = Voice.playing; listen(heroById(P.hero.id), P.key+1, S.listen); }
 });
 
 /* ============================ home ============================ */
-let sphereFilter = "Все";
+let sphereFilter = "all";
+const SPHERES = ["all","music","painting","science","ballet","film"];
 
 function installHTML(){
   if(isStandalone() || load(K.install, false)) return "";
-  if(S.installEvt) return `<div class="install"><div><b>Установите приложение</b><span>Оно появится на экране телефона и будет работать без интернета.</span></div>
-    <div class="install-acts"><button class="btn small solid" type="button" data-install="go">Установить</button><button class="btn small" type="button" data-install="hide">Не сейчас</button></div></div>`;
-  if(isIOS()) return `<div class="install"><div><b>Установите на iPhone</b><span>В Safari нажмите «Поделиться», затем «На экран Домой». Приложение откроется без адресной строки и будет работать без интернета.</span></div>
-    <div class="install-acts"><button class="btn small" type="button" data-install="hide">Понятно</button></div></div>`;
+  if(S.installEvt) return `<div class="install"><div><b>${t("installTitle")}</b><span>${t("installText")}</span></div>
+    <div class="install-acts"><button class="btn small solid" type="button" data-install="go">${t("installBtn")}</button><button class="btn small" type="button" data-install="hide">${t("notNow")}</button></div></div>`;
+  if(isIOS()) return `<div class="install"><div><b>${t("iosTitle")}</b><span>${t("iosText")}</span></div>
+    <div class="install-acts"><button class="btn small" type="button" data-install="hide">${t("gotIt")}</button></div></div>`;
   return "";
 }
-function refreshInstall(){ const slot = $("#install-slot"); if(slot){ slot.innerHTML = installHTML(); } }
+function refreshInstall(){ const slot = $("#install-slot"); if(slot) slot.innerHTML = installHTML(); }
 
 function renderHome(){
   S.hero = null;
-  const spheres = ["Все","Музыка","Живопись","Наука","Балет","Кино"];
   $("#app").innerHTML = `
   <div class="wrap">
     <div id="install-slot">${installHTML()}</div>
     <section class="intro">
       <div>
-        <p class="eyebrow">Вена · пилотная версия</p>
-        <h1>Один день<br>с великим венцем</h1>
-        <p class="lead">Выберите героя и пройдите его день по тем же улицам и в том же порядке: дом, где он проснулся, кафе, мастерская, театр. Начните прогулку, и у каждой двери зазвучит его голос: монолог по письмам и воспоминаниям.</p>
+        <p class="eyebrow">${t("homeEyebrow")}</p>
+        <h1>${t("homeTitle")}</h1>
+        <p class="lead">${t("homeLead")}</p>
       </div>
-      <div class="spheres" role="group" aria-label="Фильтр по сферам">
-        <p class="eyebrow">Сферы</p>
-        ${spheres.map(s=>`<button type="button" class="chip" data-sphere="${s}" aria-pressed="${s===sphereFilter}">${s}</button>`).join("")}
+      <div class="spheres" role="group" aria-label="${t("spheresAria")}">
+        <p class="eyebrow">${t("spheresLabel")}</p>
+        ${SPHERES.map(s=>`<button type="button" class="chip" data-sphere="${s}" aria-pressed="${s===sphereFilter}">${t("sphere_"+s)}</button>`).join("")}
       </div>
     </section>
   </div>
   <div class="check" aria-hidden="true"></div>
   <div class="wrap">
     <section class="section" id="heroes">
-      <div class="section-head"><h2>Дни, которые можно прожить</h2><p>Четыре маршрута готовы. Остальные герои в работе.</p></div>
-      <div class="cards">${HEROES.map(heroCard).join("")}</div>
-      <div class="soon">${UPCOMING.map(soonCard).join("")}</div>
-      <p class="note is-hidden" id="empty-note">В готовых маршрутах этой сферы пока нет, ниже герои, которые появятся.</p>
+      <div class="section-head"><h2>${t("heroesTitle")}</h2><p>${t("heroesSub")}</p></div>
+      <div class="cards">${LOC.heroes.map(heroCard).join("")}</div>
+      <div class="soon">${LOC.upcoming.map(soonCard).join("")}</div>
+      <p class="note is-hidden" id="empty-note">${t("emptyNote")}</p>
     </section>
     <section class="section" id="timeline">
-      <div class="section-head"><h2>Вена как общая сцена</h2><p>Годы, которые каждый герой прожил в Вене. Ромб отмечает день маршрута, пунктир показывает связь между героями.</p></div>
+      <div class="section-head"><h2>${t("tlTitle")}</h2><p>${t("tlSub")}</p></div>
       <div class="tl-box">${timelineSVG()}</div>
       <div class="tl-legend">
-        <span><i style="width:18px;height:8px;background:var(--c-mozart)"></i>годы в Вене</span>
-        <span><i style="width:18px;height:8px;background:var(--line-strong)"></i>герой скоро появится</span>
-        <span><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-right:6px"><path d="M6 1l5 5-5 5-5-5z" fill="var(--ink)"/></svg>день маршрута</span>
+        <span><i style="width:18px;height:8px;background:var(--c-mozart)"></i>${t("tlYears")}</span>
+        <span><i style="width:18px;height:8px;background:var(--line-strong)"></i>${t("tlSoon")}</span>
+        <span><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;margin-right:6px"><path d="M6 1l5 5-5 5-5-5z" fill="var(--ink)"/></svg>${t("tlDay")}</span>
       </div>
-      <div class="links">${LINKS.map(linkCard).join("")}</div>
+      <div class="links">${LOC.links.map(linkCard).join("")}</div>
     </section>
     <section class="section" id="how">
-      <div class="section-head"><h2>Как это работает</h2><p>Что уже умеет пилотная версия и что появится дальше.</p></div>
-      <div class="how">${HOW.map(([e,t,p])=>`<div><p class="eyebrow">${e}</p><h4>${t}</h4><p>${p}</p></div>`).join("")}</div>
+      <div class="section-head"><h2>${t("howTitle")}</h2><p>${t("howSub")}</p></div>
+      <div class="how">${LOC.how.map(([e,ti,p])=>`<div><p class="eyebrow">${e}</p><h4>${ti}</h4><p>${p}</p></div>`).join("")}</div>
     </section>
     ${footer()}
   </div>`;
@@ -378,7 +445,7 @@ function applyFilter(){
   $$(".chip").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.sphere === sphereFilter)));
   let shown = 0;
   $$("[data-card-sphere]").forEach(el=>{
-    const ok = sphereFilter === "Все" || el.dataset.cardSphere === sphereFilter;
+    const ok = sphereFilter === "all" || el.dataset.cardSphere === sphereFilter;
     el.classList.toggle("is-hidden", !ok);
     if(ok && el.classList.contains("card")) shown++;
   });
@@ -391,44 +458,44 @@ function heroCard(h){
   return `<a class="card h-${h.id}" href="#${h.id}" data-card-sphere="${h.sphere}">
     <div class="band" aria-hidden="true"></div>
     <div class="card-in">
-      <div class="card-top">${monogram(h,48)}<p class="eyebrow">${h.sphere}<br>${h.years}</p></div>
+      <div class="card-top">${monogram(h,48)}<p class="eyebrow">${t("sphere_"+h.sphere)}<br>${h.years}</p></div>
       <h3>${h.short}</h3>
       <p class="full">${h.name}</p>
       <div class="card-day"><span class="date">${h.date}</span><span>${h.dayTitle}</span></div>
-      <div class="card-meta">${st.places} ${plural(st.places,"место","места","мест")} · ${km(st.walkM)} км пешком${st.transit?` · ${st.transit} ${plural(st.transit,"поездка","поездки","поездок")}`:""} · ≈ ${fmtMin(st.minutes)}</div>
-      <div class="card-go"><span>Прожить день →</span>${v?`<span class="prog">пройдено ${v} из ${h.stops.length}</span>`:""}</div>
+      <div class="card-meta">${countWord("pl_places", st.places)} · ${t("walkKm",{d:t("u_km",{n:km(st.walkM)})})}${st.transit?` · ${countWord("pl_trips", st.transit)}`:""} · ≈ ${fmtMin(st.minutes)}</div>
+      <div class="card-go"><span>${t("cardGo")}</span>${v?`<span class="prog">${t("progress",{n:v, t:h.stops.length})}</span>`:""}</div>
     </div>
   </a>`;
 }
 function soonCard(h){
   return `<div class="soon-card h-upcoming" data-card-sphere="${h.sphere}">
-    <div class="row"><p class="eyebrow">${h.sphere}</p><span class="tag">скоро</span></div>
+    <div class="row"><p class="eyebrow">${t("sphere_"+h.sphere)}</p><span class="tag">${t("soonTag")}</span></div>
     <h4>${h.name}</h4><p>${h.years}</p><p>${h.teaser}</p></div>`;
 }
 function heroChip(id){
-  const h = byId(id); if(!h) return "";
-  return HEROES.includes(h) ? `<a class="h-${id}" href="#${id}">${h.short}</a>` : `<span>${h.short}, скоро</span>`;
+  const h = anyById(id); if(!h) return "";
+  return isActiveHero(id) ? `<a class="h-${id}" href="#${id}">${h.short}</a>` : `<span>${t("soonChip",{short:h.short})}</span>`;
 }
 function linkCard(l){
   return `<div class="link-card"><span class="yr">${l.year}</span><h4>${l.title}</h4><p>${l.text}</p>
     <div class="pair">${heroChip(l.a)}${heroChip(l.b)}${l.c?heroChip(l.c):""}</div></div>`;
 }
 function timelineSVG(){
-  const rows = [...ALL].sort((a,b)=>a.vienna[0][0]-b.vienna[0][0]);
+  const rows = [...LOC.heroes, ...LOC.upcoming].sort((a,b)=>a.vienna[0][0]-b.vienna[0][0]);
   const X0 = 150, X1 = 885, Y1 = 1775, Y2 = 1950, TOP = 34, RH = 30;
   const x = y=>X0+(y-Y1)/(Y2-Y1)*(X1-X0);
   const yOf = id=>TOP+rows.findIndex(r=>r.id===id)*RH+RH/2;
   const H = TOP+rows.length*RH+10;
-  let s = `<svg viewBox="0 0 900 ${H}" role="img" aria-label="Годы жизни героев в Вене, 1775–1950">`;
+  let s = `<svg viewBox="0 0 900 ${H}" role="img" aria-label="${t("tlAria")}">`;
   for(let y=Y1;y<=Y2;y+=25) s += `<line class="tl-tick" x1="${x(y)}" y1="${TOP-8}" x2="${x(y)}" y2="${H-6}"/><text class="tl-year" x="${x(y)}" y="${TOP-14}" text-anchor="middle">${y}</text>`;
-  LINKS.forEach(l=>{
+  LOC.links.forEach(l=>{
     const yr = +l.year, ys = [l.a,l.b,l.c].filter(Boolean).filter(id=>rows.some(r=>r.id===id)).map(yOf);
     s += `<line class="tl-conn" x1="${x(yr)}" x2="${x(yr)}" y1="${Math.min(...ys)}" y2="${Math.max(...ys)}"><title>${l.year}: ${l.title}</title></line>`;
     ys.forEach(yy=>{ s += `<circle class="tl-dot" cx="${x(yr)}" cy="${yy}" r="3.5"><title>${l.year}: ${l.title}</title></circle>`; });
   });
   rows.forEach((r,i)=>{
-    const cy = TOP+i*RH+RH/2; const active = HEROES.includes(r);
-    const label = `<text class="tl-name${active?"":" up"}" x="0" y="${cy}" dominant-baseline="central">${r.short}${active?"":" · скоро"}</text>`;
+    const cy = TOP+i*RH+RH/2; const active = isActiveHero(r.id);
+    const label = `<text class="tl-name${active?"":" up"}" x="0" y="${cy}" dominant-baseline="central">${r.short}${active?"":t("soonRow")}</text>`;
     s += active ? `<a class="tl-link" href="#${r.id}">${label}</a>` : label;
     r.vienna.forEach(([a,b])=>{
       s += `<rect x="${x(a)}" y="${cy-5}" width="${Math.max(4,x(b)-x(a))}" height="10" rx="2" ${active?`fill="var(--c-${r.id})"`:`class="tl-bar-up"`}><title>${r.name}: ${a}–${Math.floor(b)}</title></rect>`;
@@ -440,8 +507,8 @@ function timelineSVG(){
 function footer(){
   return `<footer class="foot">
     <div class="check thin" aria-hidden="true" style="width:120px"></div>
-    <p>Пилотная версия ${APP_VERSION}. Монологи героев написаны как художественная реконструкция по письмам и воспоминаниям; под каждым указано, на что он опирается. Исторические справки основаны на биографиях и материалах венских музеев. Карта схематична: расстояния и направления в масштабе, улицы не показаны.</p>
-    <p>Отметки о пройденных местах и настройки хранятся только на этом телефоне.</p>
+    <p>${t("footer1", {v:APP_VERSION})}</p>
+    <p>${t("footer2")}</p>
   </footer>`;
 }
 
@@ -451,62 +518,62 @@ function renderHero(h, keepScroll){
   S.hero = h; S.active = -1;
   const stops = stopsOf(h);
   const st = dayStats(h); const L = legs(stops);
-  const others = LINKS.filter(l=>[l.a,l.b,l.c].includes(h.id));
-  const nextHero = HEROES[(HEROES.indexOf(h)+1)%HEROES.length];
+  const others = LOC.links.filter(l=>[l.a,l.b,l.c].includes(h.id));
+  const nextHero = LOC.heroes[(LOC.heroes.findIndex(x=>x.id===h.id)+1)%LOC.heroes.length];
   $("#app").innerHTML = `
   <div class="h-${h.id}">
   <div class="wrap">
-    <a class="back" href="#heroes">← Все герои</a>
+    <a class="back" href="#heroes">${t("back")}</a>
     <section class="hh">
       <div class="mono-big">${monogram(h,112)}</div>
       <div>
-        <p class="eyebrow">${h.sphere} · ${h.years} · ${h.inVienna}</p>
+        <p class="eyebrow">${t("sphere_"+h.sphere)} · ${h.years} · ${h.inVienna}</p>
         <h1>${h.name}</h1>
         <p class="hh-day"><span class="date">${h.date}</span><span>${h.dayTitle}</span></p>
         <p class="lede">${h.lede}</p>
         <ul class="stats">
-          <li><b>${st.places}</b><span>${plural(st.places,"место","места","мест")}</span></li>
-          <li><b>${km(st.walkM)} км</b><span>пешком</span></li>
-          ${st.transit?`<li><b>${st.transit}</b><span>${plural(st.transit,"поездка","поездки","поездок")}</span></li>`:""}
-          <li><b>≈ ${fmtMin(st.minutes)}</b><span>прогулка</span></li>
-          <li><b>${stops[0].time}–${stops[stops.length-1].time}</b><span>день героя</span></li>
+          <li><b>${fmtNum(st.places)}</b><span>${tp("pl_places", st.places)}</span></li>
+          <li><b>${t("u_km",{n:km(st.walkM)})}</b><span>${t("statWalk")}</span></li>
+          ${st.transit?`<li><b>${fmtNum(st.transit)}</b><span>${tp("pl_trips", st.transit)}</span></li>`:""}
+          <li><b>≈ ${fmtMin(st.minutes)}</b><span>${t("statTour")}</span></li>
+          <li><b>${stops[0].time}–${stops[stops.length-1].time}</b><span>${t("statDay")}</span></li>
         </ul>
         <div class="actions">
-          <button class="btn solid" type="button" id="walk-start">${ICON.walk}Начать прогулку</button>
-          <button class="btn" type="button" id="play-day" ${Voice.ok?"":"disabled"}>${ICON.play}Слушать весь день</button>
-          <button class="btn" type="button" id="walk-demo">${ICON.demo}Демо-прогулка</button>
-          <a class="btn" href="${mapsRoute(stops)}" target="_blank" rel="noopener">${ICON.out}Маршрут в Google Картах</a>
+          <button class="btn solid" type="button" id="walk-start">${ICON.walk}${t("startWalk")}</button>
+          <button class="btn" type="button" id="play-day" ${Voice.ok?"":"disabled"}>${ICON.play}${t("listenDay")}</button>
+          <button class="btn" type="button" id="walk-demo">${ICON.demo}${t("demoWalk")}</button>
+          <a class="btn" href="${mapsRoute(stops)}" target="_blank" rel="noopener">${ICON.out}${t("routeMaps")}</a>
         </div>
-        <p class="note"><b>Старт:</b> ${h.start}</p>
-        <p class="note">Во время прогулки держите экран включённым: приложение следит за геопозицией и само включает голос у каждой точки. Демо-прогулка проходит маршрут виртуально, чтобы попробовать дома.</p>
-        <p class="note" id="voice-note">${Voice.note()}</p>
+        <p class="note"><b>${t("startLabel")}</b> ${h.start}</p>
+        <p class="note">${t("walkNote")}</p>
+        <p class="note" id="voice-note">${voiceNote()}</p>
       </div>
     </section>
   </div>
   <div class="check thin" aria-hidden="true" style="background-image:repeating-conic-gradient(var(--hc) 0 25%,transparent 0 50%)"></div>
   <div class="wrap">
     <section class="day">
-      <aside class="mapcard" aria-label="Схема маршрута">
+      <aside class="mapcard" aria-label="${t("mapAria",{title:h.dayTitle})}">
         <div id="map">${mapSVG(h, stops)}</div>
         <div class="map-foot">
           <div class="progress"><span class="bar"><i id="prog-bar"></i></span><span id="prog-txt"></span></div>
-          <span class="legend"><svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="2.5"/></svg> пешком
-          ${st.transit?`<svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/></svg> транспорт`:""}
-          <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--me)" stroke="var(--surface)" stroke-width="2"/></svg> вы</span>
+          <span class="legend"><svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="2.5"/></svg> ${t("legendWalk")}
+          ${st.transit?`<svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/></svg> ${t("legendTransit")}`:""}
+          <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--me)" stroke="var(--surface)" stroke-width="2"/></svg> ${t("legendMe")}</span>
         </div>
-        <p class="mapnote">Схема: прямые линии показывают направление, а не улицы; пунктирный круг показывает зону, где включается голос. Нажмите на точку, чтобы открыть место.</p>
+        <p class="mapnote">${t("mapNote")}</p>
       </aside>
       <div class="stops">
         ${stops.map((s,i)=>stopHTML(h,s,i,L[i])).join("")}
-        <div class="epilogue"><p class="eyebrow">После этого дня</p><p>${h.epilogue}</p></div>
+        <div class="epilogue"><p class="eyebrow">${t("afterDay")}</p><p>${h.epilogue}</p></div>
       </div>
     </section>
     ${others.length?`<section class="hero-links">
-      <div class="section-head"><h2>Связи</h2><p>Где день ${h.gen} пересекается с другими героями.</p></div>
+      <div class="section-head"><h2>${t("linksTitle")}</h2><p>${t("linksSub", heroVars(h))}</p></div>
       <div class="links n${others.length}" style="margin-top:0">${others.map(linkCard).join("")}</div>
     </section>`:""}
     <div class="next-hero">
-      <span class="eyebrow">Следующий день</span>
+      <span class="eyebrow">${t("nextDay")}</span>
       <a class="btn h-${nextHero.id}" href="#${nextHero.id}">${nextHero.short}: ${nextHero.dayTitle} →</a>
     </div>
     ${footer()}
@@ -522,13 +589,13 @@ function stopHTML(h, s, i, leg){
   const v = isVisited(h.id, i);
   let legHTML = "";
   if(leg){
-    if(leg.same) legHTML = `<div class="leg">${ICON.walk}<span>Возвращение в тот же дом.</span></div>`;
-    else if(leg.transit) legHTML = `<div class="leg transit">${ICON.tram}<span>≈ ${km(leg.d)} км по прямой. ${s.go}</span></div>`;
-    else legHTML = `<div class="leg">${ICON.walk}<span>≈ ${fmtDist(leg.walk)} · ${Math.max(1, Math.round(leg.walk/75))} мин пешком</span></div>`;
+    if(leg.same) legHTML = `<div class="leg">${ICON.walk}<span>${t("sameHouse")}</span></div>`;
+    else if(leg.transit) legHTML = `<div class="leg transit">${ICON.tram}<span>${t("legTransit",{d:t("u_km",{n:km(leg.d)}), go:s.go})}</span></div>`;
+    else legHTML = `<div class="leg">${ICON.walk}<span>${t("legWalk",{d:fmtDist(leg.walk), m:Math.max(1, Math.round(leg.walk/75))})}</span></div>`;
   }
   const calib = settings.calibrate ? `<div class="calib">
-      <button class="btn small" type="button" data-calib="${i}">${ICON.pin}Записать мои координаты сюда</button>
-      ${s.calibrated?`<span class="cal-ok">уточнено на месте</span>`:s.approx?`<span class="cal-approx">координаты приблизительные</span>`:`<span class="cal-muted">координаты из справочника</span>`}
+      <button class="btn small" type="button" data-calib="${i}">${ICON.pin}${t("calibBtn")}</button>
+      ${s.calibrated?`<span class="cal-ok">${t("calibOk")}</span>`:s.approx?`<span class="cal-approx">${t("calibApprox")}</span>`:`<span class="cal-muted">${t("calibRef")}</span>`}
     </div>` : "";
   return `${legHTML}
   <article class="stop${v?" v":""}" id="stop-${i}" data-i="${i}">
@@ -540,15 +607,15 @@ function stopHTML(h, s, i, leg){
       <blockquote class="voice">${s.voice}</blockquote>
       <p class="src">${s.src}</p>
       <div class="stop-actions">
-        <button class="btn small solid" type="button" data-speak="${i}">${ICON.play}Голос героя</button>
-        <button class="btn small" type="button" data-visit="${i}" aria-pressed="${v}">${ICON.check}${v?"Вы были здесь":"Я здесь"}</button>
-        <a class="btn small" href="${mapsSearch(s.addr)}" target="_blank" rel="noopener">${ICON.out}На карте</a>
+        <button class="btn small solid" type="button" data-speak="${i}">${ICON.play}${t("voiceBtn")}</button>
+        <button class="btn small" type="button" data-visit="${i}" aria-pressed="${v}">${ICON.check}${v?t("visited"):t("imHere")}</button>
+        <a class="btn small" href="${mapsSearch(s.addr)}" target="_blank" rel="noopener">${ICON.out}${t("onMap")}</a>
       </div>
       ${calib}
       ${s.moment==="hearing"?momentHTML():""}
       <div class="facts">
-        <div><p class="eyebrow">Как было</p><p>${s.fact}</p></div>
-        <div class="now"><p class="eyebrow">Сегодня</p><p>${s.now}</p></div>
+        <div><p class="eyebrow">${t("factLabel")}</p><p>${s.fact}</p></div>
+        <div class="now"><p class="eyebrow">${t("nowLabel")}</p><p>${s.now}</p></div>
       </div>
     </div>
   </article>`;
@@ -556,21 +623,21 @@ function stopHTML(h, s, i, leg){
 
 function momentHTML(){
   return `<div class="moment">
-    <p class="eyebrow">Момент погружения</p>
-    <h4>Услышать поле, как слышал его Бетховен</h4>
-    <p>Где-то вдали пастух играет на дудочке. Сначала послушайте, как её слышал Рис. Потом переключитесь на слух Бетховена в 1802 году: высокие звуки уходят, остаётся гул и шум в ушах, о которых он писал Вегелеру. Лучше в наушниках, громкость умеренная.</p>
+    <p class="eyebrow">${t("momentEyebrow")}</p>
+    <h4>${t("hearTitle")}</h4>
+    <p>${t("hearDesc")}</p>
     <div class="moment-ctl">
-      <button class="btn small solid" type="button" id="hear-play">${ICON.play}Слушать поле</button>
-      <div class="seg" role="group" aria-label="Чей слух">
-        <button type="button" data-mode="ries" aria-pressed="${Hear.mode!=="lvb"}">Слух Риса</button>
-        <button type="button" data-mode="lvb" aria-pressed="${Hear.mode==="lvb"}">Слух Бетховена, 1802</button>
+      <button class="btn small solid" type="button" id="hear-play">${ICON.play}${t("hearPlay")}</button>
+      <div class="seg" role="group" aria-label="${t("hearAria")}">
+        <button type="button" data-mode="ries" aria-pressed="${Hear.mode!=="lvb"}">${t("hearRies")}</button>
+        <button type="button" data-mode="lvb" aria-pressed="${Hear.mode==="lvb"}">${t("hearLvb")}</button>
       </div>
     </div>
-    <canvas id="hear-spec" style="color:var(--hc)" aria-label="Спектр звука: слева низкие частоты, справа высокие"></canvas>
-    <div class="spec-legend"><span>низкие частоты</span><span>высокие частоты · до 9 кГц</span></div>
+    <canvas id="hear-spec" style="color:var(--hc)" aria-label="${t("hearCanvas")}"></canvas>
+    <div class="spec-legend"><span>${t("hearLow")}</span><span>${t("hearHigh")}</span></div>
   </div>`;
 }
-function stopHearing(){ Hear.stop($("#hear-spec")); const b = $("#hear-play"); if(b) b.innerHTML = ICON.play+"Слушать поле"; }
+function stopHearing(){ Hear.stop($("#hear-spec")); const b = $("#hear-play"); if(b) b.innerHTML = ICON.play+t("hearPlay"); }
 
 function wireHero(h){
   $("#walk-start").addEventListener("click", ()=>startWalk(false));
@@ -583,9 +650,9 @@ function wireHero(h){
   $$("[data-speak]").forEach(b=>b.addEventListener("click", e=>{
     e.stopPropagation(); const i = +b.dataset.speak;
     const P = Voice.playing;
-    if(P && P.hero === h && P.key === i){ Voice.stop(); S.listen = false; return; }
+    if(P && sameHero(P.hero, h) && P.key === i){ Voice.stop(); S.listen = false; return; }
     Voice.broken = false;
-    if(S.walk){ const s = S.walk.stops[i]; Voice.say(h, i, s.title, s.voice, s.audio||null, null); }
+    if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.voice, audioFor(s), null); }
     else listen(h, i, false);
   }));
   $$("[data-visit]").forEach(b=>b.addEventListener("click", e=>{
@@ -605,8 +672,8 @@ function wireHero(h){
     hp.addEventListener("click", e=>{
       e.stopPropagation();
       if(Hear.on){ stopHearing(); return; }
-      if(Hear.start($("#hear-spec"))) hp.innerHTML = ICON.stop+"Остановить";
-      else hp.textContent = "Звук недоступен в этом браузере";
+      if(Hear.start($("#hear-spec"))) hp.innerHTML = ICON.stop+t("stopBtn");
+      else hp.textContent = t("hearNA");
     });
     $$(".seg button").forEach(b=>b.addEventListener("click", e=>{
       e.stopPropagation(); Hear.setMode(b.dataset.mode);
@@ -619,7 +686,7 @@ function syncVisitUI(i){
   if(!S.hero) return;
   const v = isVisited(S.hero.id, i);
   const card = $(`#stop-${i}`); if(card) card.classList.toggle("v", v);
-  const b = $(`[data-visit="${i}"]`); if(b){ b.setAttribute("aria-pressed", String(v)); b.innerHTML = ICON.check+(v?"Вы были здесь":"Я здесь"); }
+  const b = $(`[data-visit="${i}"]`); if(b){ b.setAttribute("aria-pressed", String(v)); b.innerHTML = ICON.check+(v?t("visited"):t("imHere")); }
   refreshMarks();
 }
 
@@ -636,27 +703,27 @@ function refreshMarks(){
     g.classList.toggle("on", ids.includes(S.active));
     g.classList.toggle("v", ids.some(i=>isVisited(S.hero.id, i)));
   });
-  const n = (visited[S.hero.id]||[]).length, t = S.hero.stops.length;
+  const n = (visited[S.hero.id]||[]).length, total = S.hero.stops.length;
   const bar = $("#prog-bar"), txt = $("#prog-txt");
-  if(bar) bar.style.width = (n/t*100)+"%";
-  if(txt) txt.textContent = `пройдено ${n} из ${t}`;
+  if(bar) bar.style.width = (n/total*100)+"%";
+  if(txt) txt.textContent = t("progress", {n, t:total});
 }
 
 /* ============================ калибровка координат ============================ */
 async function calibrate(h, i){
   let pos = S.lastPos && Date.now()-S.lastPos.ts < 20000 && !S.lastPos.demo ? S.lastPos : null;
   if(!pos){
-    toast("Определяем координаты…", null, null, 0);
+    toast(t("toastLocating"), null, null, 0);
     try{ pos = await Geo.once(); S.lastPos = pos; }
-    catch(e){ toast(geoErrText(e) || "Не удалось определить координаты.", null, null, 7000); return; }
+    catch(e){ toast(geoErrText(e) || t("toastCalibFail"), null, null, 7000); return; }
   }
-  if(pos.acc > 35){ toast(`Точность ±${Math.round(pos.acc)} м, этого мало. Постойте на открытом месте и попробуйте снова.`, null, null, 6000); return; }
+  if(pos.acc > 35){ toast(t("toastCalibAcc", {n:Math.round(pos.acc)}), null, null, 6000); return; }
   overrides[h.id] = overrides[h.id] || {};
-  overrides[h.id][i] = {lat:+pos.lat.toFixed(6), lng:+pos.lng.toFixed(6), acc:Math.round(pos.acc), title:h.stops[i].title};
+  overrides[h.id][i] = {lat:+pos.lat.toFixed(6), lng:+pos.lng.toFixed(6), acc:Math.round(pos.acc), title:CONTENT.ru.heroes[h.id].stops[i].title};
   save(K.overrides, overrides);
-  if(S.walk && S.walk.hero === h) S.walk.stops = stopsOf(h);
+  if(S.walk && sameHero(S.walk.hero, h)) S.walk.stops = stopsOf(S.walk.hero);
   renderHero(h, true);
-  toast(`Точка ${i+1} «${h.stops[i].title}» уточнена (±${Math.round(pos.acc)} м).`);
+  toast(t("toastCalibSaved", {i:i+1, title:h.stops[i].title, n:Math.round(pos.acc)}));
 }
 
 /* ============================ settings ============================ */
@@ -666,17 +733,20 @@ function openSettings(){
   const nVisited = Object.values(visited).reduce((a,v)=>a+v.length, 0);
   const nOv = overridesCount();
   const sw = "serviceWorker" in navigator && navigator.serviceWorker.controller;
+  dlg.setAttribute("aria-label", t("set_title"));
   dlg.innerHTML = `<form method="dialog" class="set">
-    <div class="set-head"><h3>Настройки</h3><button class="btn small" value="close" aria-label="Закрыть">Готово</button></div>
-    <label class="sw"><input type="checkbox" id="set-autoVoice" ${settings.autoVoice?"checked":""}><span><b>Голос включается сам у точки</b><small>Во время прогулки монолог звучит, как только вы подходите к месту.</small></span></label>
-    <label class="sw"><input type="checkbox" id="set-vibrate" ${settings.vibrate?"checked":""}><span><b>Вибрация при прибытии</b><small>Работает на Android; iPhone вибрацию из браузера не поддерживает.</small></span></label>
-    <label class="sw"><input type="checkbox" id="set-calibrate" ${settings.calibrate?"checked":""}><span><b>Режим уточнения координат</b><small>Для пилота: встаньте у двери и сохраните точные координаты точки. Правки можно скопировать и отправить разработчику.</small></span></label>
-    <div class="set-row"><span>Отмечено мест: <b>${nVisited}</b></span><button class="btn small" type="button" id="set-reset" ${nVisited?"":"disabled"}>Сбросить отметки</button></div>
-    <div class="set-row"><span>Уточнённых точек: <b>${nOv}</b></span>
-      <span class="set-acts"><button class="btn small" type="button" id="set-copy" ${nOv?"":"disabled"}>Скопировать</button><button class="btn small" type="button" id="set-clear" ${nOv?"":"disabled"}>Удалить</button></span></div>
+    <div class="set-head"><h3>${t("set_title")}</h3><button class="btn small" value="close">${t("set_done")}</button></div>
+    <label class="set-lang"><span>${t("set_lang")}</span><select id="set-lang">${LANGS.map(l=>`<option value="${l.code}" ${l.code===lang()?"selected":""}>${l.name}</option>`).join("")}</select></label>
+    <label class="sw"><input type="checkbox" id="set-autoVoice" ${settings.autoVoice?"checked":""}><span><b>${t("set_autoVoice")}</b><small>${t("set_autoVoiceDesc")}</small></span></label>
+    <label class="sw"><input type="checkbox" id="set-vibrate" ${settings.vibrate?"checked":""}><span><b>${t("set_vibrate")}</b><small>${t("set_vibrateDesc")}</small></span></label>
+    <label class="sw"><input type="checkbox" id="set-calibrate" ${settings.calibrate?"checked":""}><span><b>${t("set_calib")}</b><small>${t("set_calibDesc")}</small></span></label>
+    <div class="set-row"><span>${t("set_visited",{n:nVisited})}</span><button class="btn small" type="button" id="set-reset" ${nVisited?"":"disabled"}>${t("set_reset")}</button></div>
+    <div class="set-row"><span>${t("set_overrides",{n:nOv})}</span>
+      <span class="set-acts"><button class="btn small" type="button" id="set-copy" ${nOv?"":"disabled"}>${t("set_copy")}</button><button class="btn small" type="button" id="set-clear" ${nOv?"":"disabled"}>${t("set_delete")}</button></span></div>
     <textarea id="set-json" readonly hidden></textarea>
-    <p class="set-note">Работа без интернета: ${sw?"<b>готово</b>, приложение сохранено на этом устройстве.":"включится, когда приложение открыто по собственному адресу (https)."}<br>Версия ${APP_VERSION}.</p>
+    <p class="set-note">${sw?t("set_offlineOn"):t("set_offlineOff")}<br>${t("set_version",{v:APP_VERSION})}</p>
   </form>`;
+  $("#set-lang", dlg).addEventListener("change", e=>{ changeLanguage(e.target.value); openSettings(); });
   const bind = (id, key)=>$("#"+id, dlg).addEventListener("change", e=>{
     settings[key] = e.target.checked; save(K.settings, settings);
     if(key === "calibrate" && S.hero) renderHero(S.hero, true);
@@ -686,20 +756,20 @@ function openSettings(){
     visited = {}; save(K.visited, visited);
     if(S.walk){ S.walk.done.clear(); S.walk.target = nextTarget(); }
     if(S.hero) renderHero(S.hero, true); else renderHome();
-    openSettings(); toast("Отметки сброшены.");
+    openSettings(); toast(t("toastVisitsReset"));
   });
   $("#set-copy", dlg).addEventListener("click", ()=>{
     const json = JSON.stringify(overrides, null, 2);
     const ta = $("#set-json", dlg); ta.value = json;
-    const fallback = ()=>{ ta.hidden = false; ta.focus(); ta.select(); toast("Выделите текст и скопируйте его вручную."); };
-    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(()=>toast("Уточнения скопированы. Пришлите их разработчику."), fallback);
+    const fallback = ()=>{ ta.hidden = false; ta.focus(); ta.select(); toast(t("toastCopyManual")); };
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(()=>toast(t("toastCopied")), fallback);
     else fallback();
   });
   $("#set-clear", dlg).addEventListener("click", ()=>{
     overrides = {}; save(K.overrides, overrides);
     if(S.walk) S.walk.stops = stopsOf(S.walk.hero);
     if(S.hero) renderHero(S.hero, true);
-    openSettings(); toast("Уточнённые координаты удалены.");
+    openSettings(); toast(t("toastCleared"));
   });
   if(!dlg.open){ if(dlg.showModal) dlg.showModal(); else dlg.setAttribute("open",""); }
 }
@@ -707,7 +777,7 @@ $("#open-settings").addEventListener("click", openSettings);
 
 /* ============================ install & service worker ============================ */
 window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); S.installEvt = e; refreshInstall(); });
-window.addEventListener("appinstalled", ()=>{ S.installEvt = null; refreshInstall(); toast("Приложение установлено."); });
+window.addEventListener("appinstalled", ()=>{ S.installEvt = null; refreshInstall(); toast(t("toastInstalled")); });
 document.addEventListener("click", e=>{
   const b = e.target.closest("[data-install]"); if(!b) return;
   if(b.dataset.install === "go" && S.installEvt){ S.installEvt.prompt(); S.installEvt.userChoice.finally(()=>{ S.installEvt = null; refreshInstall(); }); }
@@ -721,8 +791,8 @@ if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
       const nw = reg.installing; if(!nw) return;
       nw.addEventListener("statechange", ()=>{
         if(nw.state !== "installed") return;
-        if(navigator.serviceWorker.controller) toast("Доступна новая версия приложения.", "Обновить", ()=>{ updating = true; nw.postMessage("skipWaiting"); }, 0);
-        else toast("Готово: приложение будет работать без интернета.");
+        if(navigator.serviceWorker.controller) toast(t("toastNewVersion"), t("toastUpdate"), ()=>{ updating = true; nw.postMessage("skipWaiting"); }, 0);
+        else toast(t("toastOfflineReady"));
       });
     });
   }).catch(()=>{});
@@ -730,14 +800,14 @@ if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
 }
 
 function netStatus(){ const n = $("#net"); if(n) n.hidden = navigator.onLine !== false; }
-window.addEventListener("online", netStatus); window.addEventListener("offline", netStatus); netStatus();
+window.addEventListener("online", netStatus); window.addEventListener("offline", netStatus);
 
 /* ============================ router ============================ */
 function route(){
   const h = (location.hash||"").slice(1);
-  const hero = HEROES.find(x=>x.id===h);
+  const hero = heroById(h);
   if(Hear.on) Hear.stop();
-  if(S.walk && (!hero || hero !== S.walk.hero)){ endWalk(true); toast("Прогулка остановлена."); }
+  if(S.walk && (!hero || hero.id !== S.walk.hero.id)){ endWalk(true); toast(t("toastWalkStopped")); }
   if(!S.walk){ S.listen = false; Voice.stop(); }
   if(hero){ renderHero(hero); window.scrollTo({top:0, behavior:"instant"}); }
   else {
@@ -747,5 +817,10 @@ function route(){
   }
   renderDock();
 }
+
+/* ============================ start ============================ */
+applyLanguage(detectLang(load(K.lang, null)));
+Voice.init(langInfo().tts);
+netStatus();
 window.addEventListener("hashchange", route);
 route();

@@ -1,6 +1,6 @@
-// Service worker «Венских дней»: приложение целиком хранится на телефоне и работает без сети.
+// Service worker «Венских дней» (Wiener Tage): приложение целиком хранится на телефоне и работает без сети.
 // При любом изменении файлов увеличьте VERSION, иначе телефоны не получат обновление.
-const VERSION = "wt-0.2.0";
+const VERSION = "wt-0.3.0";
 const FONTS = "wt-fonts";
 const AUDIO = "wt-audio";
 
@@ -11,6 +11,13 @@ const ASSETS = [
   "./css/app.css",
   "./js/app.js",
   "./js/data.js",
+  "./js/i18n.js",
+  "./js/content/ru.js",
+  "./js/content/de.js",
+  "./js/content/en.js",
+  "./js/content/fr.js",
+  "./js/content/it.js",
+  "./js/content/es.js",
   "./js/geo.js",
   "./js/audio.js",
   "./js/map.js",

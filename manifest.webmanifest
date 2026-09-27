@@ -1,8 +1,8 @@
 {
-  "name": "Венские дни",
-  "short_name": "Венские дни",
-  "description": "Один день с великим венцем: пешие прогулки по Вене с голосом героя у каждой двери.",
-  "lang": "ru",
+  "name": "Wiener Tage",
+  "short_name": "Wiener Tage",
+  "description": "One day with a great Viennese: walks through Vienna with Mozart, Beethoven, Klimt and Freud. Six languages.",
+  "lang": "en",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -9,7 +9,8 @@ function splitSentences(t){
 export const Voice = {
   ok: hasTTS,
   voice: null,
-  hasRu: false,
+  hasLang: false,
+  langTag: "ru-RU",
   broken: false,        // синтез молчит (нет голосов, заблокирован): показываем текст и отсчитываем время чтения
   playing: null,        // {hero, key, title}
   token: null,
@@ -17,27 +18,31 @@ export const Voice = {
   audioEl: null,
   listeners: new Set(),
 
-  init(){
+  init(tag){
+    if(tag) this.langTag = tag;
     if(!hasTTS) return;
-    const load = ()=>{
-      let vs = [];
-      try{ vs = speechSynthesis.getVoices() || []; }catch(e){}
-      const ru = vs.filter(v=>/^ru([-_]|$)/i.test(v.lang||""));
-      this.hasRu = ru.length > 0;
-      this.voice = ru.find(v=>/google|premium|enhanced|natural|neural|milena|yuri/i.test(v.name)) || ru[0] || null;
-      this.emit();
-    };
-    load();
+    const load = ()=>{ this._pick(); this.emit(); };
+    this._pick();
     try{ speechSynthesis.addEventListener("voiceschanged", load); }catch(e){ speechSynthesis.onvoiceschanged = load; }
+  },
+
+  // Выбираем голос под язык: сначала точное совпадение (de-AT), потом любой того же языка (de-DE)
+  setLang(tag){ this.langTag = tag; this.broken = false; this._pick(); },
+  _pick(){
+    if(!hasTTS) return;
+    let vs = [];
+    try{ vs = speechSynthesis.getVoices() || []; }catch(e){}
+    const norm = v=>String(v.lang||"").toLowerCase().replace("_","-");
+    const tag = this.langTag.toLowerCase(), pre = tag.slice(0,2);
+    const same = vs.filter(v=>norm(v).split("-")[0] === pre);
+    const exact = same.filter(v=>norm(v) === tag);
+    const pool = exact.length ? exact : same;
+    this.hasLang = same.length > 0;
+    this.voice = pool.find(v=>/google|premium|enhanced|natural|neural|siri/i.test(v.name)) || pool[0] || null;
   },
 
   on(fn){ this.listeners.add(fn); },
   emit(){ this.listeners.forEach(fn=>{ try{ fn(this.playing); }catch(e){} }); },
-
-  note(){
-    if(!hasTTS) return "Этот браузер не умеет синтезировать речь, поэтому монологи показаны текстом. В следующей версии их прочтут актёры.";
-    return "Голос пока синтезирует телефон"+(this.hasRu?"":" (русского голоса в системе не нашлось, будет использован голос по умолчанию)")+". В следующей версии монологи прочтут актёры.";
-  },
 
   // Вызывать из обработчика нажатия: iOS разрешает речь и звук только после жеста пользователя.
   unlock(text, hero){
@@ -92,7 +97,7 @@ export const Voice = {
       if(this.token !== token) return;
       if(i >= parts.length){ done(); return; }
       const u = new SpeechSynthesisUtterance(parts[i++]);
-      u.lang = "ru-RU"; if(this.voice) u.voice = this.voice;
+      u.lang = this.voice ? this.voice.lang : this.langTag; if(this.voice) u.voice = this.voice;
       u.rate = hero ? hero.voice.rate : 1; u.pitch = hero ? hero.voice.pitch : 1;
       u.onstart = ()=>{ started = true; };
       u.onend = next;
