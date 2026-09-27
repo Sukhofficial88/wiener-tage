@@ -1,0 +1,19 @@
+{
+  "name": "Венские дни",
+  "short_name": "Венские дни",
+  "description": "Один день с великим венцем: пешие прогулки по Вене с голосом героя у каждой двери.",
+  "lang": "ru",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F5F1",
+  "theme_color": "#161513",
+  "categories": ["travel", "education", "music"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
