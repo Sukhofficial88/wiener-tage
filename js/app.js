@@ -9,9 +9,9 @@ import es from "./content/es.js";
 import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe as updateSchemeMe } from "./map.js";
-import { mountRealMap, realMapAvailable } from "./realmap.js";
+import { loadCityMap, mountCityMap } from "./citymap.js";
 
-const APP_VERSION = "0.6.0";
+const APP_VERSION = "0.7.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -34,7 +34,7 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 let visited = load(K.visited, {}) || {};
-let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe", mapMode:"real"}, load(K.settings, {}) || {});
+let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe"}, load(K.settings, {}) || {});
 const PALETTES = [
   {id:"cafe",   sw:["#F3EDE1","#1F4538","#B08D57","#8C2F39"]},
   {id:"gold",   sw:["#121110","#D4AF5A","#F1EADB","#E08A8F"]},
@@ -157,7 +157,6 @@ const sameHero = (a, b)=> !!a && !!b && a.id === b.id;
 let MAP = null, mapToken = 0;
 function destroyMap(){ mapToken++; if(MAP){ MAP.destroy(); MAP = null; } }
 function showMe(pos){ if(MAP) MAP.updateMe(pos); else updateSchemeMe(pos); }
-function mapNoteText(real){ return real ? t("mapNoteReal") : t("mapNote"); }
 function wireSchemeMarkers(){
   $$("#map .mk").forEach(g=>{
     const go = ()=>setActive(+g.dataset.i.split(",")[0], true);
@@ -165,40 +164,41 @@ function wireSchemeMarkers(){
     g.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } });
   });
 }
-function showScheme(h, stops, note){
+// Запасной вариант, если данные карты не загрузились: схема без улиц
+function showScheme(h, stops){
   const box = $("#map"); if(!box) return;
   box.className = "map-scheme"; box.innerHTML = mapSVG(h, stops);
-  const mn = $("#map-note"); if(mn) mn.textContent = note || mapNoteText(false);
-  const cm = $("#center-me"); if(cm) cm.hidden = true;
+  const mn = $("#map-note"); if(mn) mn.textContent = t("mapFallback")+" "+t("mapNote");
   wireSchemeMarkers(); refreshMarks(); markTarget();
   if(S.walk && S.walk.pos) updateSchemeMe(S.walk.pos);
 }
 async function mountMap(h, stops){
   destroyMap();
   const token = mapToken;
-  $$("[data-mapmode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mapmode === settings.mapMode)));
-  if(settings.mapMode !== "real" || !realMapAvailable()){ showScheme(h, stops, settings.mapMode === "real" ? t("mapFallback") : null); return; }
-  const box = $("#map");
-  box.className = "map-real"; box.innerHTML = "";
+  const box = $("#map"); if(!box) return;
   try{
-    const m = await mountRealMap(box, h, stops, {onPick: i=>setActive(i, true)});
-    if(token !== mapToken || !document.body.contains(box)){ m.destroy(); return; }
-    MAP = m;
-    const mn = $("#map-note"); if(mn) mn.textContent = mapNoteText(true);
-    const cm = $("#center-me"); if(cm) cm.hidden = false;
+    const data = await loadCityMap(h.id);
+    if(token !== mapToken || !document.body.contains(box)) return;
+    box.className = "map-city";
+    MAP = mountCityMap(box, h, stops, data, {onPick: i=>setActive(i, true), onLocate: centerMe});
     refreshMarks(); markTarget();
-    if(S.walk){ if(S.walk.pos) MAP.updateMe(S.walk.pos); MAP.follow(true); MAP.prefetch(); }
+    if(S.walk){ if(S.walk.pos) MAP.updateMe(S.walk.pos); MAP.follow(true); }
     else if(S.lastPos) MAP.updateMe(S.lastPos);
   }catch(e){
     if(token !== mapToken) return;
-    showScheme(h, stops, t("mapFallback"));
+    MAP = null;
+    showScheme(h, stops);
   }
 }
 async function centerMe(){
   if(!MAP) return;
-  if(MAP.hasMe()){ MAP.follow(true); return; }
-  try{ const pos = await Geo.once(); S.lastPos = pos; MAP.updateMe(pos); MAP.follow(true); }
-  catch(e){ toast(geoErrText(e), null, null, 6000); }
+  const pos = S.walk && S.walk.pos || null;
+  try{
+    const p = pos || await Geo.once();
+    S.lastPos = p; MAP.updateMe(p);
+    if(MAP.near(p)) MAP.follow(true);
+    else toast(t("mapFar"), null, null, 5000);
+  }catch(e){ toast(geoErrText(e), null, null, 6000); }
 }
 
 /* ============================ язык ============================ */
@@ -303,7 +303,7 @@ function startWalk(demo){
   else Voice.unlock(null, h, null, "audio/silence.mp3");
   prefetchAudio(h);
   lockScreen();
-  if(MAP){ MAP.follow(true); MAP.prefetch(); }
+  if(MAP) MAP.follow(true);
   if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && S.walk.pending.length), ()=>{});
   else Geo.start(onPos, onGeoErr);
   markTarget(); renderDock();
@@ -639,13 +639,6 @@ function renderHero(h, keepScroll){
     ${DECO}
     <section class="day">
       <aside class="mapcard frame" aria-label="${t("mapAria",{title:h.dayTitle})}">
-        <div class="map-tools">
-          <div class="seg-mini" role="group" aria-label="${t("mapReal")} / ${t("mapScheme")}">
-            <button type="button" data-mapmode="real" aria-pressed="${settings.mapMode==="real"}">${t("mapReal")}</button>
-            <button type="button" data-mapmode="scheme" aria-pressed="${settings.mapMode!=="real"}">${t("mapScheme")}</button>
-          </div>
-          <button class="btn small" type="button" id="center-me" hidden>${ICON.pin}${t("centerMe")}</button>
-        </div>
         <div id="map"></div>
         <div class="map-foot">
           <div class="progress"><span class="bar"><i id="prog-bar"></i></span><span id="prog-txt"></span></div>
@@ -653,7 +646,7 @@ function renderHero(h, keepScroll){
           ${st.transit?`<svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/></svg> ${t("legendTransit")}`:""}
           <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--me)" stroke="var(--surface)" stroke-width="2"/></svg> ${t("legendMe")}</span>
         </div>
-        <p class="mapnote" id="map-note">${mapNoteText(settings.mapMode==="real")}</p>
+        <p class="mapnote" id="map-note">${t("mapNoteCity")}</p>
       </aside>
       <div class="stops">
         ${stops.map((s,i)=>stopHTML(h,s,i,L[i])).join("")}
@@ -763,12 +756,6 @@ function wireHero(h){
     $$("[data-pane]", f).forEach(p=>{ p.hidden = p.dataset.pane !== b.dataset.tab; });
   }));
   $$(".stop").forEach(el=>el.addEventListener("click", e=>{ if(e.target.closest("a,button")) return; setActive(+el.dataset.i, false); }));
-  $$("[data-mapmode]").forEach(b=>b.addEventListener("click", ()=>{
-    if(settings.mapMode === b.dataset.mapmode) return;
-    settings.mapMode = b.dataset.mapmode; save(K.settings, settings);
-    mountMap(S.hero, S.walk && sameHero(S.walk.hero, h) ? S.walk.stops : stopsOf(h));
-  }));
-  $("#center-me").addEventListener("click", centerMe);
   const hp = $("#hear-play");
   if(hp){
     hp.addEventListener("click", e=>{
@@ -862,7 +849,7 @@ function openSettings(){
     <p class="set-note">${sw?t("set_offlineOn"):t("set_offlineOff")}<br>${t("set_version",{v:APP_VERSION})}</p>
   </form>`;
   $("#set-lang", dlg).addEventListener("change", e=>{ changeLanguage(e.target.value); openSettings(); });
-  $$('input[name="palette"]', dlg).forEach(r=>r.addEventListener("change", e=>{ settings.palette = e.target.value; save(K.settings, settings); applyPalette(); if(S.hero && MAP) mountMap(S.hero, stopsOf(S.hero)); }));
+  $$('input[name="palette"]', dlg).forEach(r=>r.addEventListener("change", e=>{ settings.palette = e.target.value; save(K.settings, settings); applyPalette(); }));
   const vs = $("#set-voice", dlg);
   if(vs){
     vs.addEventListener("change", e=>{

@@ -75,9 +75,10 @@ ru: {
   map_ring:"Ринг", map_canal:"Донауканал", map_wien:"р. Вена", map_brook:"ручей Шрайбербах", map_schoenbrunn:"Шёнбрунн",
   lm_stephansdom:"Стефансдом", lm_opera:"Опера", lm_hofburg:"Хофбург", lm_rathaus:"Ратуша", lm_karlskirche:"Карлскирхе", lm_belvedere:"Бельведер",
   lm_naschmarkt:"Нашмаркт", lm_prater:"Пратер", lm_schoenbrunnPalace:"дворец Шёнбрунн", lm_westbahnhof:"Вестбанхоф",
+  lm_votivkirche:"Вотивкирхе", lm_universitaet:"Университет", lm_burgtheater:"Бургтеатр", lm_parlament:"Парламент", lm_musikverein:"Музикферайн", lm_albertina:"Альбертина", lm_peterskirche:"Петерскирхе",
   voiceRecorded:"Монологи озвучены нейросетевыми голосами (модель Kokoro). В финальной версии их прочтут актёры.", voiceHint:"Звучит механически? Выберите голос получше в настройках или скачайте улучшенный: на iPhone — Настройки → Универсальный доступ → Устный контент → Голоса; на Android — настройки синтеза речи Google. В браузере Microsoft Edge на компьютере есть естественные голоса.", set_voice:"Голос синтезатора", set_voiceAuto:"Лучший доступный", set_voiceTest:"Прослушать", set_voiceNote:"Для языков, где ещё нет записей. Самые живые голоса помечены Natural, Premium или Enhanced.", set_voiceNone:"Для этого языка в системе нет голосов.", voiceSample:"Доброе утро! Сегодня мы проживём один день в Вене.",
   howToUse:"Как пользоваться", set_palette:"Оформление", pal_cafe:"Кафе Централь", pal_gold:"Золото Сецессиона", pal_pastel:"Венская пастель",
-  mapReal:"Карта", mapScheme:"Схема", centerMe:"Где я", mapNoteReal:"Маршрут проложен по улицам, пунктир — отрезки на транспорте. Нажмите на точку, чтобы открыть место. Карта © OpenStreetMap.", mapFallback:"Карта сейчас не загрузилась (нет интернета или доступа), поэтому показана схема."
+  centerMe:"Где я", mapNoteCity:"Настоящие улицы Вены. Пешие отрезки идут по улицам, пунктир — поездка на транспорте. Двигайте карту пальцем, приближайте двумя пальцами. Данные © OpenStreetMap.", zoomIn:"Приблизить", zoomOut:"Отдалить", mapFar:"Вы далеко от маршрута. Стрелка у края карты показывает, в какой стороне вы.", mapFallback:"Карта сейчас не загрузилась (нет интернета или доступа), поэтому показана схема."
 },
 /* ---------------------------------------------------------------- DE */
 de: {
@@ -143,9 +144,10 @@ de: {
   map_ring:"Ring", map_canal:"Donaukanal", map_wien:"Wienfluss", map_brook:"Schreiberbach", map_schoenbrunn:"Schönbrunn",
   lm_stephansdom:"Stephansdom", lm_opera:"Staatsoper", lm_hofburg:"Hofburg", lm_rathaus:"Rathaus", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Schloss Schönbrunn", lm_westbahnhof:"Westbahnhof",
+  lm_votivkirche:"Votivkirche", lm_universitaet:"Universität", lm_burgtheater:"Burgtheater", lm_parlament:"Parlament", lm_musikverein:"Musikverein", lm_albertina:"Albertina", lm_peterskirche:"Peterskirche",
   voiceRecorded:"Die Monologe sprechen neuronale Stimmen (Modell Kokoro). In der endgültigen Version lesen sie Schauspieler.", voiceHint:"Klingt es mechanisch? Wählen Sie in den Einstellungen eine bessere Stimme oder laden Sie eine erweiterte herunter: iPhone — Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen; Android — Einstellungen der Google-Sprachausgabe. Im Browser Microsoft Edge am Computer gibt es natürliche Stimmen.", set_voice:"Stimme der Sprachausgabe", set_voiceAuto:"Beste verfügbare", set_voiceTest:"Anhören", set_voiceNote:"Für Sprachen ohne Aufnahmen. Die natürlichsten Stimmen tragen Natural, Premium oder Enhanced im Namen.", set_voiceNone:"Für diese Sprache ist keine Stimme installiert.", voiceSample:"Guten Morgen! Heute erleben wir einen Tag in Wien.",
   howToUse:"Gebrauchsanleitung", set_palette:"Farbschema", pal_cafe:"Café Central", pal_gold:"Secessionsgold", pal_pastel:"Wiener Pastell",
-  mapReal:"Karte", mapScheme:"Skizze", centerMe:"Wo bin ich", mapNoteReal:"Die Route folgt den Straßen, gestrichelt sind Abschnitte mit den Öffis. Tippen Sie auf einen Punkt, um den Ort zu öffnen. Karte © OpenStreetMap.", mapFallback:"Die Karte wurde gerade nicht geladen (kein Internet oder kein Zugriff), daher wird die Skizze gezeigt."
+  centerMe:"Wo bin ich", mapNoteCity:"Echte Straßen Wiens. Fußwege folgen den Straßen, gestrichelt sind Fahrten mit den Öffis. Karte mit dem Finger verschieben, mit zwei Fingern zoomen. Daten © OpenStreetMap.", zoomIn:"Vergrößern", zoomOut:"Verkleinern", mapFar:"Sie sind weit von der Route entfernt. Der Pfeil am Kartenrand zeigt, in welcher Richtung Sie sind.", mapFallback:"Die Karte wurde gerade nicht geladen (kein Internet oder kein Zugriff), daher wird die Skizze gezeigt."
 },
 /* ---------------------------------------------------------------- EN */
 en: {
@@ -211,9 +213,10 @@ en: {
   map_ring:"Ring", map_canal:"Danube Canal", map_wien:"Wien River", map_brook:"Schreiberbach brook", map_schoenbrunn:"Schönbrunn",
   lm_stephansdom:"St Stephen’s", lm_opera:"State Opera", lm_hofburg:"Hofburg", lm_rathaus:"City Hall", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Schönbrunn Palace", lm_westbahnhof:"Westbahnhof",
+  lm_votivkirche:"Votive Church", lm_universitaet:"University", lm_burgtheater:"Burgtheater", lm_parlament:"Parliament", lm_musikverein:"Musikverein", lm_albertina:"Albertina", lm_peterskirche:"St Peter’s",
   voiceRecorded:"The monologues are voiced with neural voices (Kokoro model). Actors will record the final version.", voiceHint:"Sounds robotic? Pick a better voice in Settings or download an enhanced one: iPhone — Settings → Accessibility → Spoken Content → Voices; Android — Google speech settings. Microsoft Edge on a computer offers natural voices.", set_voice:"Speech voice", set_voiceAuto:"Best available", set_voiceTest:"Preview", set_voiceNote:"Used for languages without recordings. The most natural voices are marked Natural, Premium or Enhanced.", set_voiceNone:"No voice is installed for this language.", voiceSample:"Good morning! Today we will live one day in Vienna.",
   howToUse:"How to use", set_palette:"Colour scheme", pal_cafe:"Café Central", pal_gold:"Secession Gold", pal_pastel:"Viennese Pastel",
-  mapReal:"Map", mapScheme:"Diagram", centerMe:"Where am I", mapNoteReal:"The route follows the streets; dotted parts are by public transport. Tap a point to open the place. Map © OpenStreetMap.", mapFallback:"The map couldn’t load (no internet or no access), so the diagram is shown instead."
+  centerMe:"Where am I", mapNoteCity:"Vienna’s real streets. Walking legs follow the streets; dotted lines are rides on public transport. Drag to move the map, pinch to zoom. Data © OpenStreetMap.", zoomIn:"Zoom in", zoomOut:"Zoom out", mapFar:"You’re far from the route. The arrow at the edge of the map shows which way you are.", mapFallback:"The map couldn’t load (no internet or no access), so the diagram is shown instead."
 },
 /* ---------------------------------------------------------------- FR */
 fr: {
@@ -279,9 +282,10 @@ fr: {
   map_ring:"Ring", map_canal:"canal du Danube", map_wien:"la Wien", map_brook:"ruisseau Schreiberbach", map_schoenbrunn:"Schönbrunn",
   lm_stephansdom:"St-Étienne", lm_opera:"Opéra", lm_hofburg:"Hofburg", lm_rathaus:"Hôtel de ville", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvédère",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"château de Schönbrunn", lm_westbahnhof:"Westbahnhof",
+  lm_votivkirche:"Église votive", lm_universitaet:"Université", lm_burgtheater:"Burgtheater", lm_parlament:"Parlement", lm_musikverein:"Musikverein", lm_albertina:"Albertina", lm_peterskirche:"Saint-Pierre",
   voiceRecorded:"Les monologues sont dits par des voix neuronales (modèle Kokoro). Dans la version finale, des comédiens les enregistreront.", voiceHint:"La voix sonne mécanique ? Choisissez une meilleure voix dans les réglages ou téléchargez une voix améliorée : iPhone — Réglages → Accessibilité → Contenu énoncé → Voix ; Android — réglages de la synthèse vocale Google. Le navigateur Microsoft Edge sur ordinateur propose des voix naturelles.", set_voice:"Voix de synthèse", set_voiceAuto:"Meilleure disponible", set_voiceTest:"Écouter", set_voiceNote:"Pour les langues sans enregistrements. Les voix les plus naturelles portent la mention Natural, Premium ou Enhanced.", set_voiceNone:"Aucune voix n’est installée pour cette langue.", voiceSample:"Bonjour ! Aujourd’hui, nous allons vivre une journée à Vienne.",
   howToUse:"Mode d’emploi", set_palette:"Palette", pal_cafe:"Café Central", pal_gold:"Or de la Sécession", pal_pastel:"Pastel viennois",
-  mapReal:"Carte", mapScheme:"Schéma", centerMe:"Où suis-je", mapNoteReal:"L’itinéraire suit les rues ; les pointillés indiquent les trajets en transports. Touchez un point pour ouvrir le lieu. Carte © OpenStreetMap.", mapFallback:"La carte n’a pas pu se charger (pas d’internet ou d’accès), le schéma est affiché à la place."
+  centerMe:"Où suis-je", mapNoteCity:"Les vraies rues de Vienne. Les trajets à pied suivent les rues ; les pointillés sont des trajets en transports. Faites glisser pour déplacer la carte, pincez pour zoomer. Données © OpenStreetMap.", zoomIn:"Zoomer", zoomOut:"Dézoomer", mapFar:"Vous êtes loin de l’itinéraire. La flèche au bord de la carte indique dans quelle direction vous êtes.", mapFallback:"La carte n’a pas pu se charger (pas d’internet ou d’accès), le schéma est affiché à la place."
 },
 /* ---------------------------------------------------------------- IT */
 it: {
@@ -347,9 +351,10 @@ it: {
   map_ring:"Ring", map_canal:"Canale del Danubio", map_wien:"fiume Wien", map_brook:"ruscello Schreiberbach", map_schoenbrunn:"Schönbrunn",
   lm_stephansdom:"Santo Stefano", lm_opera:"Opera", lm_hofburg:"Hofburg", lm_rathaus:"Municipio", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Castello di Schönbrunn", lm_westbahnhof:"Westbahnhof",
+  lm_votivkirche:"Chiesa Votiva", lm_universitaet:"Università", lm_burgtheater:"Burgtheater", lm_parlament:"Parlamento", lm_musikverein:"Musikverein", lm_albertina:"Albertina", lm_peterskirche:"San Pietro",
   voiceRecorded:"I monologhi sono letti da voci neurali (modello Kokoro). Nella versione finale li registreranno degli attori.", voiceHint:"Suona meccanica? Scegli una voce migliore nelle impostazioni o scaricane una avanzata: iPhone — Impostazioni → Accessibilità → Contenuto letto ad alta voce → Voci; Android — impostazioni della sintesi vocale Google. Il browser Microsoft Edge sul computer offre voci naturali.", set_voice:"Voce della sintesi", set_voiceAuto:"Migliore disponibile", set_voiceTest:"Ascolta", set_voiceNote:"Per le lingue senza registrazioni. Le voci più naturali riportano Natural, Premium o Enhanced.", set_voiceNone:"Per questa lingua non è installata alcuna voce.", voiceSample:"Buongiorno! Oggi vivremo una giornata a Vienna.",
   howToUse:"Come si usa", set_palette:"Colori", pal_cafe:"Café Central", pal_gold:"Oro della Secessione", pal_pastel:"Pastello viennese",
-  mapReal:"Mappa", mapScheme:"Schema", centerMe:"Dove sono", mapNoteReal:"Il percorso segue le strade; il tratteggio indica i tragitti con i mezzi. Tocca un punto per aprire il luogo. Mappa © OpenStreetMap.", mapFallback:"La mappa non si è caricata (niente internet o accesso), quindi viene mostrato lo schema."
+  centerMe:"Dove sono", mapNoteCity:"Le vere strade di Vienna. I tratti a piedi seguono le strade; il tratteggio indica i tragitti con i mezzi. Trascina per spostare la mappa, pizzica per ingrandire. Dati © OpenStreetMap.", zoomIn:"Ingrandisci", zoomOut:"Riduci", mapFar:"Sei lontano dal percorso. La freccia sul bordo della mappa indica in che direzione ti trovi.", mapFallback:"La mappa non si è caricata (niente internet o accesso), quindi viene mostrato lo schema."
 },
 /* ---------------------------------------------------------------- ES */
 es: {
@@ -415,9 +420,10 @@ es: {
   map_ring:"Ring", map_canal:"Canal del Danubio", map_wien:"río Viena", map_brook:"arroyo Schreiberbach", map_schoenbrunn:"Schönbrunn",
   lm_stephansdom:"San Esteban", lm_opera:"Ópera", lm_hofburg:"Hofburg", lm_rathaus:"Ayuntamiento", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Palacio de Schönbrunn", lm_westbahnhof:"Westbahnhof",
+  lm_votivkirche:"Iglesia Votiva", lm_universitaet:"Universidad", lm_burgtheater:"Burgtheater", lm_parlament:"Parlamento", lm_musikverein:"Musikverein", lm_albertina:"Albertina", lm_peterskirche:"San Pedro",
   voiceRecorded:"Los monólogos los leen voces neuronales (modelo Kokoro). En la versión final los grabarán actores.", voiceHint:"¿Suena mecánica? Elige una voz mejor en los ajustes o descarga una mejorada: iPhone — Ajustes → Accesibilidad → Contenido leído → Voces; Android — ajustes de la síntesis de voz de Google. El navegador Microsoft Edge en el ordenador ofrece voces naturales.", set_voice:"Voz de síntesis", set_voiceAuto:"La mejor disponible", set_voiceTest:"Escuchar", set_voiceNote:"Para los idiomas sin grabaciones. Las voces más naturales llevan Natural, Premium o Enhanced en el nombre.", set_voiceNone:"No hay ninguna voz instalada para este idioma.", voiceSample:"¡Buenos días! Hoy viviremos un día en Viena.",
   howToUse:"Cómo se usa", set_palette:"Colores", pal_cafe:"Café Central", pal_gold:"Oro de la Secesión", pal_pastel:"Pastel vienés",
-  mapReal:"Mapa", mapScheme:"Esquema", centerMe:"Dónde estoy", mapNoteReal:"La ruta sigue las calles; lo punteado son trayectos en transporte. Toca un punto para abrir el lugar. Mapa © OpenStreetMap.", mapFallback:"El mapa no se ha podido cargar (sin internet o sin acceso), así que se muestra el esquema."
+  centerMe:"Dónde estoy", mapNoteCity:"Las calles reales de Viena. Los tramos a pie siguen las calles; lo punteado son trayectos en transporte. Arrastra para mover el mapa y pellizca para ampliar. Datos © OpenStreetMap.", zoomIn:"Acercar", zoomOut:"Alejar", mapFar:"Estás lejos de la ruta. La flecha en el borde del mapa indica en qué dirección estás.", mapFallback:"El mapa no se ha podido cargar (sin internet o sin acceso), así que se muestra el esquema."
 }
 };
 

@@ -1,9 +1,8 @@
 // Service worker «Венских дней» (Wiener Tage): приложение целиком хранится на телефоне и работает без сети.
 // При любом изменении файлов увеличьте VERSION, иначе телефоны не получат обновление.
-const VERSION = "wt-0.6.0";
+const VERSION = "wt-0.7.0";
 const FONTS = "wt-fonts";
 const AUDIO = "wt-audio";
-const MAPC = "wt-map";
 
 const ASSETS = [
   "./",
@@ -22,11 +21,11 @@ const ASSETS = [
   "./js/geo.js",
   "./js/audio.js",
   "./js/map.js",
-  "./js/realmap.js",
-  "./js/vendor/maplibre-gl.mjs",
-  "./js/vendor/maplibre-gl-shared.mjs",
-  "./js/vendor/maplibre-gl-worker.mjs",
-  "./css/vendor/maplibre-gl.css",
+  "./js/citymap.js",
+  "./data/map/mozart.json",
+  "./data/map/beethoven.json",
+  "./data/map/klimt.json",
+  "./data/map/freud.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-512.png",
@@ -41,7 +40,7 @@ self.addEventListener("install", e=>{
 self.addEventListener("activate", e=>{
   e.waitUntil((async()=>{
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k=>k.startsWith("wt-") && ![VERSION, FONTS, AUDIO, MAPC].includes(k)).map(k=>caches.delete(k)));
+    await Promise.all(keys.filter(k=>k.startsWith("wt-") && ![VERSION, FONTS, AUDIO].includes(k)).map(k=>caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -60,20 +59,6 @@ self.addEventListener("fetch", e=>{
       const hit = await cache.match(req);
       const net = fetch(req).then(r=>{ if(r.ok || r.type === "opaque") cache.put(req, r.clone()); return r; }).catch(()=>hit);
       return hit || net;
-    })());
-    return;
-  }
-  // Карта OpenFreeMap: стиль и описание тайлов — сначала сеть, тайлы, шрифты и значки — сначала кэш
-  if(url.hostname === "tiles.openfreemap.org"){
-    const fresh = url.pathname.startsWith("/styles/") || /^\/planet\/?$/.test(url.pathname);
-    e.respondWith((async()=>{
-      const cache = await caches.open(MAPC);
-      if(fresh){
-        try{ const r = await fetch(req); if(r.ok) cache.put(req, r.clone()); return r; }
-        catch(err){ const hit = await cache.match(req); if(hit) return hit; throw err; }
-      }
-      const hit = await cache.match(req); if(hit) return hit;
-      const r = await fetch(req); if(r.ok) cache.put(req, r.clone()); return r;
     })());
     return;
   }

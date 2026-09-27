@@ -91,6 +91,10 @@ export const CTX = {
     {k:"stephansdom",lat:48.20861,lng:16.37306},{k:"opera",lat:48.2031,lng:16.3692},{k:"hofburg",lat:48.2066,lng:16.3656},
     {k:"rathaus",lat:48.2108,lng:16.3573},{k:"karlskirche",lat:48.1982,lng:16.3718},{k:"belvedere",lat:48.1915,lng:16.3809},
     {k:"naschmarkt",lat:48.1983,lng:16.3615},{k:"prater",lat:48.2166,lng:16.3958},{k:"schoenbrunnPalace",lat:48.1848,lng:16.3122},
-    {k:"westbahnhof",lat:48.1966,lng:16.3380}
+    {k:"westbahnhof",lat:48.1966,lng:16.3380},
+    {k:"votivkirche",lat:48.21553,lng:16.35890},{k:"universitaet",lat:48.21316,lng:16.36010},
+    {k:"burgtheater",lat:48.21040,lng:16.36130},{k:"parlament",lat:48.20820,lng:16.35850},
+    {k:"musikverein",lat:48.20055,lng:16.37255},{k:"albertina",lat:48.20440,lng:16.36820},
+    {k:"peterskirche",lat:48.20925,lng:16.36985}
   ]
 };

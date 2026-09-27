@@ -9,6 +9,7 @@
   --ink:#1D1C18; --ink-2:#3D3A32; --muted:#6F695C; --line:#DDD3C0; --line-strong:#C5B89F;
   --gold:#8E6A31; --deco:#B08D57; --primary:#1F4538;
   --water:#A3BDB8; --ring:#D5C6A5; --park:#D6DDC6;
+  --m-road:var(--surface); --m-case:color-mix(in srgb,var(--line-strong) 75%,var(--map-bg)); --m-lo:color-mix(in srgb,var(--line-strong) 70%,var(--ink-2) 30%);
   --c-mozart:#8C2F39; --c-beethoven:#2E5B47; --c-klimt:#93702B; --c-freud:#2B4262;
   --on-hc:#FBF8F1; --me:#1F5FBF; --ok:#2E7D4F; --warn:#A86B00; --bad:#B3261E;
   --f-display:"Poiret One","Forum",Georgia,"Times New Roman",serif;
@@ -25,6 +26,7 @@
     --ink:#EFE7D6; --ink-2:#D3CAB7; --muted:#A0987F; --line:#2B3832; --line-strong:#3F4D46;
     --gold:#D0AE6B; --deco:#B99557; --primary:#86BFA4;
     --water:#2A4541; --ring:#4A4535; --park:#1F2E24;
+    --m-road:color-mix(in srgb,var(--map-bg) 70%,var(--ink) 30%); --m-case:color-mix(in srgb,var(--map-bg) 75%,#000 25%); --m-lo:color-mix(in srgb,var(--map-bg) 62%,var(--ink) 38%);
     --c-mozart:#DC878E; --c-beethoven:#86BFA4; --c-klimt:#D8B669; --c-freud:#93AED6;
     --on-hc:#0F1714; --me:#7FB2FF; --ok:#6CC08F; --warn:#E3B04B; --bad:#F2887F;
   }
@@ -35,6 +37,7 @@
   --ink:#EFE7D6; --ink-2:#D3CAB7; --muted:#A0987F; --line:#2B3832; --line-strong:#3F4D46;
   --gold:#D0AE6B; --deco:#B99557; --primary:#86BFA4;
   --water:#2A4541; --ring:#4A4535; --park:#1F2E24;
+  --m-road:color-mix(in srgb,var(--map-bg) 70%,var(--ink) 30%); --m-case:color-mix(in srgb,var(--map-bg) 75%,#000 25%); --m-lo:color-mix(in srgb,var(--map-bg) 62%,var(--ink) 38%);
   --c-mozart:#DC878E; --c-beethoven:#86BFA4; --c-klimt:#D8B669; --c-freud:#93AED6;
   --on-hc:#0F1714; --me:#7FB2FF; --ok:#6CC08F; --warn:#E3B04B; --bad:#F2887F;
 }
@@ -46,6 +49,7 @@
   --ink:#232C3D; --ink-2:#414A5A; --muted:#667068; --line:#D3DCCF; --line-strong:#B9C6B3;
   --gold:#8F7040; --deco:#B89A5E; --primary:#4F6F94;
   --water:#B3C7D4; --ring:#DCCDB0; --park:#D8E2D2;
+  --m-road:var(--surface); --m-case:color-mix(in srgb,var(--line-strong) 75%,var(--map-bg)); --m-lo:color-mix(in srgb,var(--line-strong) 70%,var(--ink-2) 30%);
   --c-mozart:#A9575E; --c-beethoven:#557C67; --c-klimt:#9A7A3E; --c-freud:#4F6F94;
   --on-hc:#FFFDF8; --me:#2F6FD0;
 }
@@ -56,6 +60,7 @@
     --ink:#EEE8DC; --ink-2:#CFC8BA; --muted:#9A9AA0; --line:#333A48; --line-strong:#475063;
     --gold:#D2B377; --deco:#BFA06A; --primary:#9FB9DC;
     --water:#334C5E; --ring:#4A4639; --park:#25302A;
+    --m-road:color-mix(in srgb,var(--map-bg) 70%,var(--ink) 30%); --m-case:color-mix(in srgb,var(--map-bg) 75%,#000 25%); --m-lo:color-mix(in srgb,var(--map-bg) 62%,var(--ink) 38%);
     --c-mozart:#E0A0A4; --c-beethoven:#9CC3AA; --c-klimt:#DCC08A; --c-freud:#9FB9DC;
     --on-hc:#171B24; --me:#7FB2FF;
   }
@@ -66,6 +71,7 @@
   --ink:#EEE8DC; --ink-2:#CFC8BA; --muted:#9A9AA0; --line:#333A48; --line-strong:#475063;
   --gold:#D2B377; --deco:#BFA06A; --primary:#9FB9DC;
   --water:#334C5E; --ring:#4A4639; --park:#25302A;
+  --m-road:color-mix(in srgb,var(--map-bg) 70%,var(--ink) 30%); --m-case:color-mix(in srgb,var(--map-bg) 75%,#000 25%); --m-lo:color-mix(in srgb,var(--map-bg) 62%,var(--ink) 38%);
   --c-mozart:#E0A0A4; --c-beethoven:#9CC3AA; --c-klimt:#DCC08A; --c-freud:#9FB9DC;
   --on-hc:#171B24; --me:#7FB2FF;
 }
@@ -77,6 +83,7 @@
   --ink:#F1EADB; --ink-2:#D6CDBB; --muted:#A39985; --line:#34302A; --line-strong:#4A443B;
   --gold:#D4AF5A; --deco:#C9A24A; --primary:#D4AF5A;
   --water:#2C4450; --ring:#4A4336; --park:#232A1F;
+  --m-road:color-mix(in srgb,var(--map-bg) 70%,var(--ink) 30%); --m-case:color-mix(in srgb,var(--map-bg) 75%,#000 25%); --m-lo:color-mix(in srgb,var(--map-bg) 62%,var(--ink) 38%);
   --c-mozart:#E08A8F; --c-beethoven:#8FC29E; --c-klimt:#E0BC62; --c-freud:#93B3E0;
   --on-hc:#121110; --me:#7FB2FF; --ok:#6CC08F; --warn:#E3B04B; --bad:#F2887F;
 }
@@ -280,22 +287,104 @@ h3,h4{font-family:var(--f-title)}
 .m-scale{stroke:var(--ink-2);stroke-width:1.5}
 .m-scale-t,.m-north{fill:var(--ink-2);font:11px var(--f-ui)}
 
-/* настоящая карта */
-.map-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-.seg-mini{display:inline-flex;border:1px solid var(--line-strong)}
-.seg-mini button{border:0;background:transparent;padding:4px 12px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;color:var(--ink-2)}
-.seg-mini button[aria-pressed="true"]{background:var(--hc);color:var(--on-hc)}
-.map-real{width:100%;height:clamp(320px,64vh,540px);position:relative;background:var(--map-bg)}
-.rm-mk{display:flex;align-items:center;gap:4px;border:0;background:none;padding:0;cursor:pointer;font:inherit}
-.rm-num{min-width:26px;height:26px;padding:0 6px;display:grid;place-items:center;font:600 12px var(--f-ui);color:var(--hc);background:var(--surface);border:2px solid var(--hc);border-radius:13px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-.rm-mk.v .rm-num{background:color-mix(in srgb,var(--hc) 25%,var(--surface))}
-.rm-mk.on .rm-num{background:var(--hc);color:var(--on-hc)}
-.rm-mk.tg .rm-num{outline:2px dashed var(--hc);outline-offset:3px}
-.rm-lbl{display:none;font:600 11.5px var(--f-ui);color:var(--ink);background:color-mix(in srgb,var(--surface) 90%,transparent);padding:1px 6px;border-radius:2px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15)}
-.rm-mk.on .rm-lbl,.rm-mk.tg .rm-lbl,.map-real.z-hi .rm-lbl{display:block}
-.rm-me{width:18px;height:18px;border-radius:50%;background:var(--me);border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.18),0 0 0 9px color-mix(in srgb,var(--me) 22%,transparent)}
-.map-real .maplibregl-ctrl-attrib{font-size:10px}
-.map-real .maplibregl-ctrl-group{border-radius:2px}
+/* ---------- карта города: SVG из данных OpenStreetMap в цветах приложения ---------- */
+#map.map-city{position:relative;width:100%;height:clamp(320px,64vh,560px);overflow:hidden;background:var(--map-bg);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;
+  --m-bldg:color-mix(in srgb,var(--map-bg) 86%,var(--ink) 14%);
+  --m-lmk:color-mix(in srgb,var(--map-bg) 55%,var(--gold) 45%);
+  --m-wood:color-mix(in srgb,var(--park) 80%,var(--primary) 20%);
+  --m-ped:color-mix(in srgb,var(--m-road) 84%,var(--gold) 16%);
+  --m-ring:color-mix(in srgb,var(--m-road) 45%,var(--gold) 55%);
+  --m-water-ink:color-mix(in srgb,var(--water) 30%,var(--ink) 70%)}
+#map.map-city:active{cursor:grabbing}
+.cm-stage{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+.mapcard #map .cm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}
+.cm-wood{fill:var(--m-wood)}
+.cm-park,.cm-vine-bg{fill:var(--park)}
+.cm-vine-dot{fill:color-mix(in srgb,var(--park) 50%,var(--primary) 50%)}
+.cm-cem{fill:color-mix(in srgb,var(--park) 65%,var(--map-bg))}
+.cm-water{fill:var(--water)}
+.cm-sq{fill:var(--m-ped)}
+.cm-bldg{fill:var(--m-bldg)}
+.cm-lmk{fill:var(--m-lmk);stroke:color-mix(in srgb,var(--gold) 70%,var(--map-bg));stroke-width:max(.5px,calc(var(--px)*.8))}
+.cm-hb{fill:color-mix(in srgb,var(--hc) 38%,var(--map-bg));stroke:var(--hc);stroke-width:calc(var(--px)*1.3)}
+.cm-hb.v,.cm-hb.on{fill:color-mix(in srgb,var(--hc) 62%,var(--map-bg))}
+.cm-wl1,.cm-wl2,.cm-rail,.cm-case path,.cm-fill path,.cm-route path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cm-wl1{stroke:var(--water);stroke-width:max(8px,calc(var(--px)*2))}
+.cm-wl2{stroke:var(--water);stroke-width:max(3px,calc(var(--px)*1.8))}
+.cm-rail{stroke:var(--muted);stroke-linecap:butt;stroke-width:max(1.5px,calc(var(--px)*1.2));stroke-dasharray:calc(var(--px)*7) calc(var(--px)*3);opacity:.75}
+.cm-case path{stroke:var(--m-case)}
+.f-r6{stroke:var(--m-case);stroke-width:max(1.2px,calc(var(--px)*.9));stroke-dasharray:calc(var(--px)*3) calc(var(--px)*2.5);opacity:.8}
+.f-r5{stroke:var(--m-ped);stroke-width:max(7px,calc(var(--px)*1.4))}
+.c-r5{stroke-width:calc(max(7px,calc(var(--px)*1.4)) + var(--px)*1.5)}
+.f-r4{stroke:var(--m-road);stroke-width:max(8px,calc(var(--px)*1.2))}
+.c-r4{stroke-width:calc(max(8px,calc(var(--px)*1.2)) + var(--px)*1.5)}
+.f-r3{stroke:var(--m-road);stroke-width:max(11px,calc(var(--px)*1.7))}
+.c-r3{stroke-width:calc(max(11px,calc(var(--px)*1.7)) + var(--px)*1.8)}
+.f-r2{stroke:var(--m-road);stroke-width:max(14px,calc(var(--px)*2.1))}
+.c-r2{stroke-width:calc(max(14px,calc(var(--px)*2.1)) + var(--px)*1.8)}
+.f-r1{stroke:color-mix(in srgb,var(--m-road) 86%,var(--gold) 14%);stroke-width:max(18px,calc(var(--px)*2.6))}
+.c-r1{stroke-width:calc(max(18px,calc(var(--px)*2.6)) + var(--px)*2)}
+.f-ring{stroke:var(--m-ring);stroke-width:max(24px,calc(var(--px)*3.6))}
+.c-ring{stroke:color-mix(in srgb,var(--gold) 75%,var(--map-bg))!important;stroke-width:calc(max(24px,calc(var(--px)*3.6)) + var(--px)*2.2)}
+/* мелкий масштаб: улицы тонкими линиями без обводки */
+.z-lo .cm-case,.z-lo .f-r6{display:none}
+.z-lo .cm-fill path:not(.f-ring){stroke:var(--m-lo)}
+.z-lo .f-r4{opacity:.6}
+.z-xlo .cm-bldg{opacity:.5}
+.z-xlo .f-r4{opacity:.4}
+/* маршрут и зоны */
+.cm-halo path{stroke:var(--map-bg);stroke-width:calc(var(--px)*8);opacity:.85}
+.cm-line path{stroke:var(--hc);stroke-width:calc(var(--px)*4)}
+.cm-route .transit{stroke-dasharray:calc(var(--px)*.1) calc(var(--px)*8)}
+.cm-line .transit{stroke-width:calc(var(--px)*4.5)}
+.cm-line .done{opacity:.45}
+.cm-line .next{stroke-width:calc(var(--px)*5.5)}
+.cm-zones circle{fill:color-mix(in srgb,var(--hc) 8%,transparent);stroke:var(--hc);stroke-width:var(--px);stroke-dasharray:calc(var(--px)*3) calc(var(--px)*3);opacity:.75}
+.cm-acc{fill:color-mix(in srgb,var(--me) 15%,transparent);stroke:color-mix(in srgb,var(--me) 45%,transparent);stroke-width:var(--px)}
+/* подписи вдоль улиц */
+.cm-labels text{paint-order:stroke;stroke-linejoin:round}
+.cm-t-minor,.cm-t-major,.cm-t-ped{font-family:var(--f-ui);font-weight:500;fill:var(--ink-2);stroke:var(--m-road);stroke-width:calc(var(--px)*3)}
+.cm-t-major{font-weight:600}
+.cm-t-ped{stroke:var(--m-ped)}
+.cm-t-ring{font-family:var(--f-ui);font-weight:600;fill:color-mix(in srgb,var(--gold) 60%,var(--ink));stroke:var(--m-ring);stroke-width:calc(var(--px)*2.5)}
+.cm-t-water{font-family:var(--f-voice);font-style:italic;font-weight:500;fill:var(--m-water-ink);stroke:var(--water);stroke-width:calc(var(--px)*2.5)}
+.z-lo .cm-t-minor,.z-lo .cm-t-major,.z-lo .cm-t-ped{stroke:var(--map-bg)}
+/* подписи и точки поверх карты */
+.cm-over{position:absolute;inset:0;pointer-events:none}
+.cm-over>*{position:absolute;left:0;top:0}
+.cm-over [hidden]{display:none!important}
+.cm-pt{white-space:nowrap;line-height:1.15;--halo:var(--map-bg);text-shadow:0 0 2px var(--halo),0 0 2px var(--halo),0 0 4px var(--halo)}
+.cm-lm{font:italic 600 14.5px/1.15 var(--f-voice);color:color-mix(in srgb,var(--gold) 55%,var(--ink))}
+.cm-pl.k-park{font:italic 500 14px/1.15 var(--f-voice);color:color-mix(in srgb,var(--primary) 65%,var(--ink));--halo:var(--park)}
+.cm-pl.k-sq{font:600 9px/1.2 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);--halo:var(--m-ped)}
+.cm-pl.k-water{font:italic 500 14px/1.15 var(--f-voice);color:var(--m-water-ink);--halo:var(--water)}
+.cm-st{display:flex;align-items:center;gap:4px;font:500 10.5px/1 var(--f-ui);color:var(--ink-2)}
+.cm-st b{flex:none;display:grid;place-items:center;width:15px;height:15px;font:700 11px/1 var(--f-ui);color:#fff;background:#23509A;border-radius:2px;text-shadow:none}
+.cm-st.s b{border-radius:50%}
+.cm-st em{font-style:normal}
+.cm-st.icon-only em{display:none}
+.cm-mk{width:0;height:0;border:0;padding:0;background:none;cursor:pointer;pointer-events:auto;font:inherit}
+.cm-num{position:absolute;left:0;top:0;transform:translate(-50%,-50%);min-width:26px;height:26px;padding:0 6px;display:grid;place-items:center;font:600 12px var(--f-ui);color:var(--hc);background:var(--surface);border:2px solid var(--hc);border-radius:13px;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap;box-sizing:border-box}
+.cm-mk.v .cm-num{background:color-mix(in srgb,var(--hc) 25%,var(--surface))}
+.cm-mk.on .cm-num{background:var(--hc);color:var(--on-hc)}
+.cm-mk.tg .cm-num{outline:2px dashed var(--hc);outline-offset:3px}
+.cm-mk:focus-visible{outline:none}
+.cm-mk:focus-visible .cm-num{outline:2px solid var(--ink);outline-offset:2px}
+.cm-mlbl{height:20px;padding:0 6px;font:600 11.5px/20px var(--f-ui);color:var(--ink);background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:2px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.cm-mlbl.on{color:var(--hc)}
+.cm-me{width:0;height:0}
+.cm-me::before{content:"";position:absolute;left:-9px;top:-9px;width:18px;height:18px;box-sizing:border-box;border-radius:50%;background:var(--me);border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.18),0 0 0 8px color-mix(in srgb,var(--me) 20%,transparent)}
+.cm-ctl{position:absolute;right:8px;top:8px;z-index:2;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line-strong);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.cm-ctl button{width:32px;height:32px;border:0;background:none;color:var(--ink);font:400 19px/1 var(--f-ui);cursor:pointer;display:grid;place-items:center;padding:0}
+.cm-ctl button+button{border-top:1px solid var(--line)}
+.cm-ctl .cm-loc{color:var(--me)}
+.mapcard #map .cm-loc svg{width:16px;height:16px;display:block}
+.cm-edge{position:absolute;left:0;top:0;z-index:2;display:flex;align-items:center;gap:5px;border:1px solid var(--me);background:var(--surface);color:var(--me);font:600 11px var(--f-ui);padding:3px 9px 3px 7px;border-radius:12px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap}
+.cm-edge[hidden]{display:none}
+.cm-edge i{font-style:normal;display:inline-block}
+.cm-scale{position:absolute;left:8px;bottom:6px;display:flex;align-items:flex-end;gap:5px;font:500 10px/1 var(--f-ui);color:var(--ink-2);pointer-events:none;text-shadow:0 0 2px var(--map-bg),0 0 2px var(--map-bg)}
+.cm-scale i{display:block;height:5px;border:1.5px solid var(--ink-2);border-top:0}
+.cm-attr{position:absolute;right:0;bottom:0;z-index:2;font:10px/1.5 var(--f-ui);color:var(--muted);background:color-mix(in srgb,var(--map-bg) 82%,transparent);padding:0 5px;text-decoration:none}
 
 /* карточки точек */
 .stops{display:flex;flex-direction:column}
@@ -402,7 +491,7 @@ dialog#settings::backdrop{background:rgba(0,0,0,.4)}
   .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
   .day{grid-template-columns:minmax(0,1fr)}
   .mapcard{position:relative;top:auto}
-  .map-real{height:clamp(280px,70vw,440px)}
+  #map.map-city{height:clamp(300px,82vw,460px)}
   .how{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 }
 @media (max-width:820px){ .links,.links.n2{grid-template-columns:minmax(0,1fr)} }
