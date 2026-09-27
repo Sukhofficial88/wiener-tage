@@ -1,4 +1,4 @@
-import { HEROES as BASE_HEROES, UPCOMING as BASE_UPCOMING, LINKS as BASE_LINKS } from "./data.js";
+import { HEROES as BASE_HEROES, UPCOMING as BASE_UPCOMING, LINKS as BASE_LINKS, RECORDINGS } from "./data.js";
 import { LANGS, detectLang, setLang, lang, langInfo, t, tp, fmtNum } from "./i18n.js";
 import ru from "./content/ru.js";
 import de from "./content/de.js";
@@ -10,7 +10,7 @@ import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe } from "./map.js";
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.4.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -33,7 +33,7 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 let visited = load(K.visited, {}) || {};
-let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false}, load(K.settings, {}) || {});
+let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}}, load(K.settings, {}) || {});
 let overrides = load(K.overrides, {}) || {};
 
 const isVisited = (id, i)=> (visited[id]||[]).includes(i);
@@ -61,7 +61,19 @@ const heroById = id => LOC.heroes.find(h=>h.id===id);
 const anyById = id => heroById(id) || LOC.upcoming.find(u=>u.id===id);
 const isActiveHero = id => !!heroById(id);
 const heroVars = h => ({short:h.short, ins:h.ins || h.short, gen:h.gen || h.short, name:h.name});
-const audioFor = s => !s.audio ? null : (typeof s.audio === "string" ? s.audio : (s.audio[lang()] || null));
+// Записи есть для героя на текущем языке? key: номер точки (с нуля), "intro" или "epilogue"
+const recorded = h => !!h && (RECORDINGS[lang()] || []).includes(h.id);
+function audioFor(h, key){
+  if(recorded(h)) return `audio/${lang()}/${h.id}-${typeof key === "number" ? key+1 : key}.mp3`;
+  const s = typeof key === "number" ? h.stops[key] : null;
+  return !s || !s.audio ? null : (typeof s.audio === "string" ? s.audio : (s.audio[lang()] || null));
+}
+// Заранее скачиваем записи маршрута, чтобы прогулка шла без интернета
+function prefetchAudio(h){
+  if(!recorded(h) || !("fetch" in window)) return;
+  const keys = ["intro", ...h.stops.map((_,i)=>i), "epilogue"];
+  (async()=>{ for(const k of keys){ try{ await fetch(audioFor(h, k)); }catch(e){ return; } } })();
+}
 
 function stopsOf(h){
   const o = overrides[h.id] || {};
@@ -168,8 +180,10 @@ $("#lang-select").addEventListener("change", e=>changeLanguage(e.target.value));
 
 /* ============================ voice glue ============================ */
 function voiceNote(){
+  if(recorded(S.hero)) return t("voiceRecorded");
   if(!Voice.ok) return t("voiceNoTTS");
-  return t("voiceNote", {extra: Voice.hasLang ? "" : t("voiceNoLang")});
+  const base = t("voiceNote", {extra: Voice.hasLang ? "" : t("voiceNoLang")});
+  return Voice.goodVoice ? base : base + " " + t("voiceHint");
 }
 Voice.on(()=>{ setTimeout(onVoiceIdle, 0); updateVoiceUI(); });
 
@@ -177,7 +191,7 @@ function listen(h, i, auto){
   const st = stopsOf(h); const s = st[i]; if(!s) return;
   S.listen = !!auto;
   setActive(i, true);
-  Voice.say(h, i, s.title, s.voice, audioFor(s), ()=>{
+  Voice.say(h, i, s.title, s.voice, audioFor(h, i), ()=>{
     if(S.listen && i < st.length-1 && sameHero(S.hero, h)){
       setTimeout(()=>{ if(S.listen && !Voice.playing && sameHero(S.hero, h)) listen(S.hero, i+1, true); }, 900);
     } else S.listen = false;
@@ -221,8 +235,11 @@ function startWalk(demo){
   S.walk.target = nextTarget();
   const tg = stops[S.walk.target];
   document.body.classList.add("walking");
-  if(settings.autoVoice) Voice.unlock(t(S.walk.target === 0 ? "introFirst" : "introNext", {...heroVars(h), title:tg.title}), h);
-  else Voice.unlock(null);
+  const introText = t(S.walk.target === 0 ? "introFirst" : "introNext", {...heroVars(h), title:tg.title});
+  const introUrl = recorded(h) && S.walk.target === 0 ? audioFor(h, "intro") : null;
+  if(settings.autoVoice) Voice.unlock(recorded(h) && !introUrl ? null : introText, h, introUrl, "audio/silence.mp3");
+  else Voice.unlock(null, h, null, "audio/silence.mp3");
+  prefetchAudio(h);
   lockScreen();
   if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && S.walk.pending.length), ()=>{});
   else Geo.start(onPos, onGeoErr);
@@ -281,7 +298,7 @@ function arrive(i){
 
 function playInWalk(i){
   const w = S.walk; const s = w.stops[i];
-  Voice.say(w.hero, i, s.title, s.voice, audioFor(s), null);
+  Voice.say(w.hero, i, s.title, s.voice, audioFor(w.hero, i), null);
 }
 
 function onVoiceIdle(){
@@ -295,7 +312,7 @@ function finishWalk(){
   w.finished = true;
   if(w.demo) Geo.stopDemo();
   renderDock();
-  if(settings.autoVoice) Voice.say(w.hero, "epilogue", t("afterDay"), w.hero.epilogue, null, null);
+  if(settings.autoVoice) Voice.say(w.hero, "epilogue", t("afterDay"), w.hero.epilogue, audioFor(w.hero, "epilogue"), null);
 }
 
 function markTarget(){
@@ -645,14 +662,14 @@ function wireHero(h){
   $("#play-day").addEventListener("click", ()=>{
     if(S.listen && Voice.playing){ stopListen(); return; }
     if(S.walk) endWalk(true);
-    Voice.broken = false; listen(h, 0, true);
+    Voice.broken = false; prefetchAudio(h); listen(h, 0, true);
   });
   $$("[data-speak]").forEach(b=>b.addEventListener("click", e=>{
     e.stopPropagation(); const i = +b.dataset.speak;
     const P = Voice.playing;
     if(P && sameHero(P.hero, h) && P.key === i){ Voice.stop(); S.listen = false; return; }
     Voice.broken = false;
-    if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.voice, audioFor(s), null); }
+    if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.voice, audioFor(S.walk.hero, i), null); }
     else listen(h, i, false);
   }));
   $$("[data-visit]").forEach(b=>b.addEventListener("click", e=>{
@@ -737,6 +754,14 @@ function openSettings(){
   dlg.innerHTML = `<form method="dialog" class="set">
     <div class="set-head"><h3>${t("set_title")}</h3><button class="btn small" value="close">${t("set_done")}</button></div>
     <label class="set-lang"><span>${t("set_lang")}</span><select id="set-lang">${LANGS.map(l=>`<option value="${l.code}" ${l.code===lang()?"selected":""}>${l.name}</option>`).join("")}</select></label>
+    ${Voice.ok ? `<div class="set-voice">
+      <label for="set-voice"><b>${t("set_voice")}</b></label>
+      <div class="set-voice-row">
+        <select id="set-voice">${Voice.voices().length ? `<option value="">${t("set_voiceAuto")}${Voice.voice?" · "+Voice.voice.name:""}</option>`+Voice.voices().map(v=>`<option value="${v.voiceURI}" ${settings.voices[lang()]===v.voiceURI?"selected":""}>${v.name}</option>`).join("") : `<option value="">${t("set_voiceNone")}</option>`}</select>
+        <button class="btn small" type="button" id="set-voice-test" ${Voice.voices().length?"":"disabled"}>${t("set_voiceTest")}</button>
+      </div>
+      <small>${(RECORDINGS[lang()]||[]).length ? t("voiceRecorded")+" " : ""}${t("set_voiceNote")}</small>
+    </div>` : ""}
     <label class="sw"><input type="checkbox" id="set-autoVoice" ${settings.autoVoice?"checked":""}><span><b>${t("set_autoVoice")}</b><small>${t("set_autoVoiceDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-vibrate" ${settings.vibrate?"checked":""}><span><b>${t("set_vibrate")}</b><small>${t("set_vibrateDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-calibrate" ${settings.calibrate?"checked":""}><span><b>${t("set_calib")}</b><small>${t("set_calibDesc")}</small></span></label>
@@ -747,6 +772,15 @@ function openSettings(){
     <p class="set-note">${sw?t("set_offlineOn"):t("set_offlineOff")}<br>${t("set_version",{v:APP_VERSION})}</p>
   </form>`;
   $("#set-lang", dlg).addEventListener("change", e=>{ changeLanguage(e.target.value); openSettings(); });
+  const vs = $("#set-voice", dlg);
+  if(vs){
+    vs.addEventListener("change", e=>{
+      const uri = e.target.value; settings.voices = settings.voices || {};
+      if(uri) settings.voices[lang()] = uri; else delete settings.voices[lang()];
+      save(K.settings, settings); Voice.choose(uri); updateVoiceUI();
+    });
+    $("#set-voice-test", dlg).addEventListener("click", ()=>Voice.sample(t("voiceSample")));
+  }
   const bind = (id, key)=>$("#"+id, dlg).addEventListener("change", e=>{
     settings[key] = e.target.checked; save(K.settings, settings);
     if(key === "calibrate" && S.hero) renderHero(S.hero, true);
@@ -820,7 +854,7 @@ function route(){
 
 /* ============================ start ============================ */
 applyLanguage(detectLang(load(K.lang, null)));
-Voice.init(langInfo().tts);
+Voice.init(langInfo().tts, settings.voices);
 netStatus();
 window.addEventListener("hashchange", route);
 route();

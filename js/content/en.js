@@ -174,7 +174,7 @@ export default {
   ],
   how: [
     ["Navigation","Geofences, not buttons","Start the walk and the app follows your location. As you approach a place, the person’s voice starts by itself, and between stops you see the distance to the next one."],
-    ["Sound","The person’s voice","The monologues are drawn from letters, diaries and memoirs. For now your phone’s speech synthesis reads them; next come recordings by actors and, for Freud, the real BBC recording from 1938."],
+    ["Sound","The person’s voice","The monologues are drawn from letters, diaries and memoirs. In English each person already has a neural voice of their own; other languages use the phone’s speech synthesis for now. Next come recordings by actors and, for Freud, the real BBC recording from 1938."],
     ["Immersion","Moments on site","Short sound scenes: Beethoven’s hearing in 1802 is already here. Next: the Figaro rehearsal and the façade of the demolished Burgtheater laid over today’s Michaelerplatz."],
     ["Sources","Document or reconstruction","Under every monologue you can see where it comes from: a letter, a memoir, or a dramatised reconstruction. The historical notes are kept separate from the person’s voice."],
     ["Languages","Six languages, offline","The app speaks English, German, French, Italian, Spanish and Russian. After the first visit it is stored on your phone and works without mobile data."],

@@ -55,6 +55,10 @@ export const HEROES = [
 }
 ];
 
+// Готовые аудиозаписи: язык → герои. Файлы: audio/<язык>/<герой>-<номер точки|intro|epilogue>.mp3
+// Английские записи сгенерированы открытой моделью Kokoro-82M (Apache 2.0).
+export const RECORDINGS = { en: ["mozart","beethoven","klimt","freud"] };
+
 export const UPCOMING = [
   {id:"strauss", mono:"JS", sphere:"music", years:"1825–1899", vienna:[[1825, 1899]]},
   {id:"elssler", mono:"FE", sphere:"ballet", years:"1810–1884", vienna:[[1810, 1834]]},

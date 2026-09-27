@@ -325,3 +325,9 @@ dialog#settings::backdrop{background:rgba(0,0,0,.35)}
 @media (max-width:480px){ .proto{display:none} }
 @media (max-width:680px){ .lang-select{margin-left:auto} }
 @media (max-width:480px){ .brand small{display:none} .brand{font-size:20px} .topbar{gap:12px} }
+
+.set-voice{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.set-voice b{font-weight:600;font-size:15px}
+.set-voice small{color:var(--muted);font-size:13px;line-height:1.45}
+.set-voice-row{display:flex;gap:8px;align-items:center}
+.set-voice-row select{flex:1;min-width:0;font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:3px;padding:6px 8px}

@@ -1,62 +1,105 @@
-// Голос героя (записи актёров или синтез речи) и звуковой «момент погружения».
+// Голос героя: готовые записи (нейросетевые голоса, позже актёры) или синтез речи телефона,
+// и звуковой «момент погружения».
 
 const hasTTS = typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 
-function splitSentences(t){
-  return (t.match(/[^.!?…]+[.!?…]+[»"]*|[^.!?…]+$/g) || [t]).map(s=>s.trim()).filter(Boolean);
+// Предложения склеиваем в куски до ~220 знаков: так интонация не рвётся на каждой точке,
+// а сетевые голоса Chrome не обрываются на длинном тексте.
+function chunks(t, max){
+  const sent = (t.match(/[^.!?…]+[.!?…]+[»"”]*|[^.!?…]+$/g) || [t]).map(s=>s.trim()).filter(Boolean);
+  const out = []; let cur = "";
+  for(const s of sent){
+    if(cur && (cur+" "+s).length > max){ out.push(cur); cur = s; }
+    else cur = cur ? cur+" "+s : s;
+  }
+  if(cur) out.push(cur);
+  return out;
+}
+
+// Оценка качества голоса синтезатора по названию
+const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|hysterical|eddy|flo\b|grandma|grandpa|reed|rocko|sandy|shelley/i;
+const MALE = /\bmale\b|daniel|arthur|oliver|ryan|guy|christopher|eric|thomas|aaron|evan|nathan|\btom\b|alex|fred|gordon|rishi|george|jamie|liam|andrew|brian|davis|jason|tony|roger|conrad|florian|killian|jonas|markus|yannick|stefan|hans|klaus|henri|paul|jérôme|jerome|denis|remy|rémy|luca|diego|cosimo|giuseppe|benigno|alvaro|álvaro|jorge|juan|pablo|alonso|carlos|enrique|dmitr|pavel|yuri|maxim|artem|ilya|ivan/i;
+export function voiceScore(v){
+  let s = 0;
+  if(/natural/i.test(v.name)) s += 100;       // нейросетевые голоса Microsoft Edge
+  if(/premium/i.test(v.name)) s += 80;        // Apple: скачиваемые «премиум»
+  if(/enhanced|neural|wavenet/i.test(v.name)) s += 60;
+  if(/google/i.test(v.name)) s += 40;
+  if(/compact/i.test(v.name)) s -= 30;
+  if(NOVELTY.test(v.name)) s -= 200;
+  if(MALE.test(v.name)) s += 12;              // все герои пилота — мужчины
+  return s;
 }
 
 export const Voice = {
   ok: hasTTS,
   voice: null,
   hasLang: false,
+  goodVoice: false,     // есть ли на устройстве качественный голос для языка
   langTag: "ru-RU",
+  chosen: {},           // выбор пользователя: {язык: voiceURI}
   broken: false,        // синтез молчит (нет голосов, заблокирован): показываем текст и отсчитываем время чтения
-  playing: null,        // {hero, key, title}
+  playing: null,        // {hero, key, title, simulated, recorded}
   token: null,
   timers: [],
-  audioEl: null,
+  el: null,             // один постоянный аудиоэлемент: на iPhone он «разблокируется» первым нажатием
   listeners: new Set(),
 
-  init(tag){
+  init(tag, chosen){
     if(tag) this.langTag = tag;
+    if(chosen) this.chosen = chosen;
     if(!hasTTS) return;
     const load = ()=>{ this._pick(); this.emit(); };
     this._pick();
     try{ speechSynthesis.addEventListener("voiceschanged", load); }catch(e){ speechSynthesis.onvoiceschanged = load; }
   },
 
-  // Выбираем голос под язык: сначала точное совпадение (de-AT), потом любой того же языка (de-DE)
   setLang(tag){ this.langTag = tag; this.broken = false; this._pick(); },
-  _pick(){
-    if(!hasTTS) return;
+  choose(uri){ const l = this.langTag.slice(0,2); if(uri) this.chosen[l] = uri; else delete this.chosen[l]; this._pick(); },
+
+  // Голоса текущего языка, лучшие первыми
+  voices(){
+    if(!hasTTS) return [];
     let vs = [];
     try{ vs = speechSynthesis.getVoices() || []; }catch(e){}
     const norm = v=>String(v.lang||"").toLowerCase().replace("_","-");
     const tag = this.langTag.toLowerCase(), pre = tag.slice(0,2);
-    const same = vs.filter(v=>norm(v).split("-")[0] === pre);
-    const exact = same.filter(v=>norm(v) === tag);
-    const pool = exact.length ? exact : same;
-    this.hasLang = same.length > 0;
-    this.voice = pool.find(v=>/google|premium|enhanced|natural|neural|siri/i.test(v.name)) || pool[0] || null;
+    return vs.filter(v=>norm(v).split("-")[0] === pre)
+      .map(v=>({v, s: voiceScore(v) + (norm(v) === tag ? 5 : 0)}))
+      .sort((a,b)=>b.s-a.s).map(x=>x.v);
+  },
+  _pick(){
+    if(!hasTTS) return;
+    const list = this.voices();
+    this.hasLang = list.length > 0;
+    const want = this.chosen[this.langTag.slice(0,2)];
+    this.voice = (want && list.find(v=>v.voiceURI === want)) || list.find(v=>voiceScore(v) >= 0) || list[0] || null;
+    this.goodVoice = !!this.voice && voiceScore(this.voice) >= 40;
   },
 
   on(fn){ this.listeners.add(fn); },
   emit(){ this.listeners.forEach(fn=>{ try{ fn(this.playing); }catch(e){} }); },
 
-  // Вызывать из обработчика нажатия: iOS разрешает речь и звук только после жеста пользователя.
-  unlock(text, hero){
+  _audio(){
+    if(!this.el){ this.el = new Audio(); this.el.preload = "auto"; }
+    return this.el;
+  },
+
+  // Вызывать из обработчика нажатия: iOS разрешает звук и речь только после жеста пользователя.
+  unlock(text, hero, introUrl, silenceUrl){
     try{
       const AC = window.AudioContext || window.webkitAudioContext;
       if(AC){ this._ac = this._ac || new AC(); if(this._ac.state === "suspended") this._ac.resume(); }
     }catch(e){}
+    if(introUrl){ this.say(hero, "intro", "", text || "", introUrl, null); return; }
+    if(silenceUrl){ try{ const a = this._audio(); a.src = silenceUrl; a.play().catch(()=>{}); }catch(e){} }
     if(text) this.say(hero, "intro", "", text, null, null);
   },
 
   stop(){
     this.token = null;
     this.timers.forEach(clearTimeout); this.timers = [];
-    if(this.audioEl){ try{ this.audioEl.pause(); }catch(e){} this.audioEl = null; }
+    if(this.el){ try{ this.el.onended = null; this.el.onerror = null; this.el.pause(); }catch(e){} }
     if(hasTTS){ try{ speechSynthesis.cancel(); }catch(e){} }
     if(this.playing){ this.playing = null; this.emit(); }
   },
@@ -65,40 +108,43 @@ export const Voice = {
   say(hero, key, title, text, audioUrl, onEnd){
     this.stop();
     const token = {}; this.token = token;
-    this.playing = {hero, key, title, simulated:false};
+    this.playing = {hero, key, title, simulated:false, recorded:!!audioUrl};
     this.emit();
     const done = ()=>{
       if(this.token !== token) return;
       this.token = null; this.playing = null; this.emit();
       onEnd && onEnd();
     };
-
     if(audioUrl){
-      const a = new Audio(audioUrl); this.audioEl = a;
-      a.onended = done;
-      a.onerror = ()=>{ if(this.token === token){ this.audioEl = null; this._tts(hero, text, token, done); } };
-      a.play().catch(()=>{ if(this.token === token){ this.audioEl = null; this._tts(hero, text, token, done); } });
+      const a = this._audio();
+      const fallback = ()=>{ if(this.token !== token) return; a.onended = a.onerror = null; this.playing.recorded = false; this._tts(hero, text, token, done); };
+      a.onended = done; a.onerror = fallback;
+      try{ a.src = audioUrl; a.currentTime = 0; }catch(e){}
+      const p = a.play(); if(p && p.catch) p.catch(fallback);
       return;
     }
     this._tts(hero, text, token, done);
   },
 
   _simulate(text, token, done){
-    if(this.playing) { this.playing.simulated = true; this.emit(); }
+    if(this.playing){ this.playing.simulated = true; this.emit(); }
     const ms = Math.min(30000, Math.max(3000, text.length/16*1000));
     this.timers.push(setTimeout(()=>{ if(this.token === token) done(); }, ms));
   },
 
   _tts(hero, text, token, done){
+    if(!text){ done(); return; }
     if(!hasTTS || this.broken){ this._simulate(text, token, done); return; }
-    const parts = splitSentences(text);
+    // Локальные голоса читают текст целиком — так интонация естественнее; сетевым даём куски
+    const parts = this.voice && this.voice.localService ? chunks(text, 1200) : chunks(text, 220);
     let i = 0, started = false;
     const next = ()=>{
       if(this.token !== token) return;
       if(i >= parts.length){ done(); return; }
       const u = new SpeechSynthesisUtterance(parts[i++]);
       u.lang = this.voice ? this.voice.lang : this.langTag; if(this.voice) u.voice = this.voice;
-      u.rate = hero ? hero.voice.rate : 1; u.pitch = hero ? hero.voice.pitch : 1;
+      // Высоту голоса не трогаем: сдвиг высоты делает синтезатор металлическим
+      u.rate = hero ? hero.voice.rate : 1; u.pitch = 1;
       u.onstart = ()=>{ started = true; };
       u.onend = next;
       u.onerror = e=>{
@@ -119,6 +165,15 @@ export const Voice = {
         this._simulate(text, token, done);
       }
     }, 3000));
+  },
+
+  // Короткий пример выбранного голоса для настроек
+  sample(text){
+    if(!hasTTS) return;
+    this.stop();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = this.voice ? this.voice.lang : this.langTag; if(this.voice) u.voice = this.voice;
+    try{ speechSynthesis.speak(u); }catch(e){}
   }
 };
 

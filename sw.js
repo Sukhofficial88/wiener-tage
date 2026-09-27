@@ -1,6 +1,6 @@
 // Service worker «Венских дней» (Wiener Tage): приложение целиком хранится на телефоне и работает без сети.
 // При любом изменении файлов увеличьте VERSION, иначе телефоны не получат обновление.
-const VERSION = "wt-0.3.0";
+const VERSION = "wt-0.4.0";
 const FONTS = "wt-fonts";
 const AUDIO = "wt-audio";
 
@@ -24,7 +24,8 @@ const ASSETS = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/apple-touch-icon.png",
+  "./audio/silence.mp3"
 ];
 
 self.addEventListener("install", e=>{
@@ -64,15 +65,18 @@ self.addEventListener("fetch", e=>{
     return;
   }
 
-  // Записи голосов (появятся позже): кэшируем при первом прослушивании
+  // Записи голосов: кэшируем при первом скачивании и отдаём кусками (Range), как требует Safari
   if(url.pathname.includes("/audio/")){
     e.respondWith((async()=>{
       const cache = await caches.open(AUDIO);
-      const hit = await cache.match(req.url);
-      if(hit) return hit;
-      const r = await fetch(req);
-      if(r.ok && r.status === 200) cache.put(req.url, r.clone());
-      return r;
+      let hit = await caches.match(req.url);
+      if(!hit){
+        const r = await fetch(req.url);
+        if(!(r.ok && r.status === 200)) return r;
+        await cache.put(req.url, r.clone());
+        hit = r;
+      }
+      return rangeResponse(req, hit);
     })());
     return;
   }
@@ -83,3 +87,20 @@ self.addEventListener("fetch", e=>{
     return r;
   })));
 });
+
+async function rangeResponse(req, resp){
+  const range = req.headers.get("range");
+  if(!range) return resp;
+  const buf = await resp.arrayBuffer(); const size = buf.byteLength;
+  const m = /bytes=(\d*)-(\d*)/.exec(range);
+  let start = m && m[1] ? +m[1] : 0, end = m && m[2] ? +m[2] : size-1;
+  if(m && !m[1] && m[2]){ start = Math.max(0, size - +m[2]); end = size-1; }
+  end = Math.min(end, size-1);
+  if(start > end) return new Response(null, {status:416, headers:{"Content-Range":`bytes */${size}`}});
+  return new Response(buf.slice(start, end+1), {status:206, headers:{
+    "Content-Type": resp.headers.get("Content-Type") || "audio/mpeg",
+    "Content-Range": `bytes ${start}-${end}/${size}`,
+    "Content-Length": String(end-start+1),
+    "Accept-Ranges": "bytes"
+  }});
+}
