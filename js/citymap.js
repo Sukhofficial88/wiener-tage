@@ -81,8 +81,8 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
       <g class="cm-zones">${stops.map((s, i) => `<circle cx="${stopXY[i][0].toFixed(1)}" cy="${stopXY[i][1].toFixed(1)}" r="${s.radius||45}"/>`).join("")}</g>
       <g class="cm-route"><g class="cm-halo">${legs}</g><g class="cm-line">${legs}</g></g>
       <circle class="cm-acc" r="0" cx="0" cy="0" style="display:none"/>
-      <g class="cm-labels"></g>
     </svg>
+    <svg class="cm-lsvg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"></svg>
     <div class="cm-over"></div>
   </div>
   <div class="cm-ctl">
@@ -95,7 +95,7 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
   <a class="cm-attr" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>`;
 
   const stage = el.querySelector(".cm-stage"), svg = el.querySelector(".cm-svg"), over = el.querySelector(".cm-over");
-  const labG = svg.querySelector(".cm-labels"), acc = svg.querySelector(".cm-acc"), edge = el.querySelector(".cm-edge");
+  const labG = el.querySelector(".cm-lsvg"), acc = svg.querySelector(".cm-acc"), edge = el.querySelector(".cm-edge");
   const scaleI = el.querySelector(".cm-scale i"), scaleT = el.querySelector(".cm-scale span");
 
   /* ---------- точки маршрута (одинаковые места объединяем: 1·5) ---------- */
@@ -110,9 +110,10 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     b.setAttribute("aria-label", g.ids.map(i => (i+1)+". "+stops[i].title).join("; "));
     b.innerHTML = `<span class="cm-num">${g.ids.map(i => i+1).join("·")}</span>`;
     const lbl = document.createElement("span"); lbl.className = "cm-mlbl"; lbl.textContent = stops[g.ids[0]].short;
-    b.addEventListener("click", e => { e.stopPropagation(); opts.onPick && opts.onPick(g.ids[0]); });
+    const m = {el:b, lbl, g, w:0, lw:0};
+    b.addEventListener("click", e => { e.stopPropagation(); if(m.cluster) openCluster(m.cluster); else if(opts.onPick) opts.onPick(g.ids[0]); });
     over.append(lbl, b);
-    return {el:b, lbl, g, w:0, lw:0};
+    return m;
   });
 
   /* ---------- подписи-точки: достопримечательности, станции, площади, парки ---------- */
@@ -160,8 +161,8 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     V = {...T}; stage.style.transform = "";
     svg.setAttribute("viewBox", `${V.x - W/2/V.s} ${V.y - H/2/V.s} ${W/V.s} ${H/V.s}`);
     svg.style.setProperty("--px", (1 / V.s) + "px");
-    svg.classList.toggle("z-lo", V.s < .5);
-    svg.classList.toggle("z-xlo", V.s < .22);
+    el.classList.toggle("z-lo", V.s < .5);
+    el.classList.toggle("z-xlo", V.s < .22);
     el.classList.toggle("z-hi", V.s >= 1.2);
     layout(); placeMe(); scaleBar();
   }
@@ -173,16 +174,33 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     const free = box => !taken.some(b => overlap(b, box));
     const onScreen = (x, y, m = 0) => x > -m && x < W + m && y > -m && y < H + m;
     // точки маршрута — главнее всего
+    // Точки, которые на этом масштабе налезают друг на друга, сливаются в один значок «4–7»
+    const clusters = [];
     for(const m of markers){
       const [x, y] = toPx(m.g.xy[0], m.g.xy[1]);
-      m.el.style.transform = `translate(${x}px,${y}px)`;
-      if(!m.w) m.w = m.el.firstChild.offsetWidth || 26;
-      taken.push([x - m.w/2 - 2, y - 15, x + m.w/2 + 2, y + 15]);
       m.x = x; m.y = y;
+      const c = clusters.find(c => c.ms.some(o => Math.hypot(o.x - x, o.y - y) < 30));
+      if(c) c.ms.push(m); else clusters.push({ms:[m]});
     }
-    // подписи точек маршрута: активная и цель первыми, справа или слева
+    for(const c of clusters){
+      const lead = c.ms[0], ids = c.ms.flatMap(o => o.g.ids).sort((a, b) => a - b);
+      c.ms.forEach((o, k) => { o.el.hidden = k > 0; o.cluster = c.ms.length > 1 ? c : null; o.ids = k ? [] : ids; });
+      const text = numLabel(ids);
+      if(lead.text !== text){ lead.el.firstChild.textContent = text; lead.text = text; lead.w = 0; }
+      if(c.ms.length > 1){ lead.x = c.ms.reduce((a, o) => a + o.x, 0) / c.ms.length; lead.y = c.ms.reduce((a, o) => a + o.y, 0) / c.ms.length; }
+      lead.el.style.transform = `translate(${lead.x}px,${lead.y}px)`;
+      lead.el.setAttribute("aria-label", ids.map(i => (i+1)+". "+stops[i].title).join("; "));
+      lead.el.classList.toggle("on", ids.includes(state.active));
+      lead.el.classList.toggle("v", ids.some(i => state.visited.has(i)));
+      lead.el.classList.toggle("tg", ids.includes(state.target));
+      lead.el.classList.toggle("many", c.ms.length > 1);
+      if(!lead.w) lead.w = lead.el.firstChild.offsetWidth || 26;
+      taken.push([lead.x - lead.w/2 - 2, lead.y - 15, lead.x + lead.w/2 + 2, lead.y + 15]);
+    }
+    // подписи точек маршрута: активная и цель первыми, справа или слева; у слитых значков подписи нет
     const order = markers.slice().sort((a, b) => rankM(b) - rankM(a));
     for(const m of order){
+      if(m.cluster){ m.lbl.hidden = true; continue; }
       if(!m.lw){ m.lbl.hidden = false; m.lw = m.lbl.offsetWidth || 80; }
       const lh = 20, want = true;
       let box = null, side = "";
@@ -241,15 +259,30 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
       });
       if(!seg) continue;
       taken.push(box); shownNames.add(l.t); nLines++;
-      // подпись идёт по прямой между концами участка: так буквы не слипаются на изломах
-      const [a, z] = seg.ends, pid = `${l.id}-${nLines}`;
+      // Подпись идёт по прямой между концами участка (на изломах буквы слипаются) и рисуется в экранных пикселях:
+      // Safari неровно расставляет буквы, если крошечный шрифт растягивается масштабом карты.
+      const a = toPx(...seg.ends[0]), z = toPx(...seg.ends[1]), pid = `${l.id}-${nLines}`;
       svgDefs += `<path id="${pid}" d="M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${z[0].toFixed(1)} ${z[1].toFixed(1)}"/>`;
-      svgOut += `<text class="${st.cls}" dy=".35em" style="font-size:${st.px / V.s}px${st.ls ? `;letter-spacing:${st.ls / V.s}px` : ""}"><textPath href="#${pid}" xlink:href="#${pid}" startOffset="50%" text-anchor="middle">${esc(text)}</textPath></text>`;
+      svgOut += `<text class="${st.cls}" dy=".35em" style="font-size:${st.px}px${st.ls ? `;letter-spacing:${st.ls}px` : ""}"><textPath href="#${pid}" xlink:href="#${pid}" startOffset="50%" text-anchor="middle">${esc(text)}</textPath></text>`;
     }
     for(const p of points) p.el.hidden = !p.show, p.show = false;
     labG.innerHTML = `<defs>${svgDefs}</defs>` + svgOut;
   }
   const rankM = m => (m.g.ids.includes(state.active) ? 2 : 0) + (m.g.ids.includes(state.target) ? 1 : 0);
+  // 4,5,6,7 → «4–7»; 1,5 → «1·5»
+  function numLabel(ids){
+    const n = ids.map(i => i + 1), runs = [];
+    for(const v of n){ const r = runs[runs.length - 1]; if(r && v === r[1] + 1) r[1] = v; else runs.push([v, v]); }
+    return runs.map(([a, b]) => a === b ? a : b === a + 1 ? a + "·" + b : a + "–" + b).join("·");
+  }
+  // Нажатие на слитый значок: приближаем, пока точки не разойдутся
+  function openCluster(c){
+    const xs = c.ms.map(o => o.g.xy[0]), ys = c.ms.map(o => o.g.xy[1]);
+    let dmin = Infinity;
+    for(const a of c.ms) for(const b of c.ms) if(a !== b) dmin = Math.min(dmin, Math.hypot(a.g.xy[0] - b.g.xy[0], a.g.xy[1] - b.g.xy[1]));
+    const fit = Math.min((W - 120) / Math.max(Math.max(...xs) - Math.min(...xs), 1), (H - 120) / Math.max(Math.max(...ys) - Math.min(...ys), 1));
+    animateTo({x:(Math.min(...xs) + Math.max(...xs)) / 2, y:(Math.min(...ys) + Math.max(...ys)) / 2, s:Math.min(fit, Math.max(T.s * 1.6, 44 / dmin))}, 450);
+  }
 
   // Место на линии нужной длины: почти прямое, в кадре и не занятое. Идём от середины к краям.
   function along(l, need, tol, ok){
@@ -420,13 +453,7 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
   return {
     setState({active, visited, target}){
       state = {active, visited, target};
-      markers.forEach(m => {
-        const ids = m.g.ids;
-        m.el.classList.toggle("on", ids.includes(active));
-        m.el.classList.toggle("v", ids.some(i => visited.has(i)));
-        m.el.classList.toggle("tg", ids.includes(target));
-        m.lbl.classList.toggle("on", ids.includes(active));
-      });
+      markers.forEach(m => m.lbl.classList.toggle("on", m.g.ids.includes(active)));
       svg.querySelectorAll(".cm-hb").forEach(p => {
         const ids = p.dataset.i.split(",").map(Number);
         p.classList.toggle("v", ids.some(i => visited.has(i)));
@@ -450,6 +477,6 @@ export function mountCityMap(el, hero, stops, data, opts = {}){
     follow(on){ follow = on; if(on && lastPos && nearMap(lastPos)) centerOn(lastPos); },
     near(pos){ return nearMap(pos); },
     hasMe(){ return !!lastPos; },
-    destroy(){ stopAnim(); ro.disconnect(); clearTimeout(commitTimer); el.classList.remove("cm", "z-hi"); }
+    destroy(){ stopAnim(); ro.disconnect(); clearTimeout(commitTimer); el.classList.remove("cm", "z-hi", "z-lo", "z-xlo"); }
   };
 }

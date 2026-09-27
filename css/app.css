@@ -300,7 +300,8 @@ h3,h4{font-family:var(--f-title)}
 #map.map-city{background-color:color-mix(in srgb,var(--map-bg) 88%,var(--ink) 12%);background-image:radial-gradient(color-mix(in srgb,var(--ink) 18%,transparent) 1px,transparent 1.2px);background-size:14px 14px}
 .cm-sheet{fill:var(--map-bg);stroke:color-mix(in srgb,var(--gold) 60%,var(--map-bg));stroke-width:calc(var(--px)*1.5)}
 .cm-stage{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
-.mapcard #map .cm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}
+.mapcard #map .cm-svg,.mapcard #map .cm-lsvg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}
+.cm-lsvg{pointer-events:none}
 .cm-wood{fill:var(--m-wood)}
 .cm-park,.cm-vine-bg{fill:var(--park)}
 .cm-vine-dot{fill:color-mix(in srgb,var(--park) 50%,var(--primary) 50%)}
@@ -345,13 +346,13 @@ h3,h4{font-family:var(--f-title)}
 .cm-line .next{stroke-width:calc(var(--px)*5.5)}
 .cm-zones circle{fill:color-mix(in srgb,var(--hc) 8%,transparent);stroke:var(--hc);stroke-width:var(--px);stroke-dasharray:calc(var(--px)*3) calc(var(--px)*3);opacity:.75}
 .cm-acc{fill:color-mix(in srgb,var(--me) 15%,transparent);stroke:color-mix(in srgb,var(--me) 45%,transparent);stroke-width:var(--px)}
-/* подписи вдоль улиц */
-.cm-labels text{paint-order:stroke;stroke-linejoin:round}
-.cm-t-minor,.cm-t-major,.cm-t-ped{font-family:var(--f-ui);font-weight:500;fill:var(--ink-2);stroke:var(--m-road);stroke-width:calc(var(--px)*3)}
+/* подписи вдоль улиц: отдельный слой в экранных пикселях */
+.cm-lsvg text{paint-order:stroke;stroke-linejoin:round;text-rendering:geometricPrecision;font-kerning:normal}
+.cm-t-minor,.cm-t-major,.cm-t-ped{font-family:var(--f-ui);font-weight:500;fill:var(--ink-2);stroke:var(--m-road);stroke-width:3px}
 .cm-t-major{font-weight:600}
 .cm-t-ped{stroke:var(--m-ped)}
-.cm-t-ring{font-family:var(--f-ui);font-weight:600;fill:color-mix(in srgb,var(--gold) 60%,var(--ink));stroke:var(--m-ring);stroke-width:calc(var(--px)*2.5)}
-.cm-t-water{font-family:var(--f-voice);font-style:italic;font-weight:500;fill:var(--m-water-ink);stroke:var(--water);stroke-width:calc(var(--px)*2.5)}
+.cm-t-ring{font-family:var(--f-ui);font-weight:600;fill:color-mix(in srgb,var(--gold) 60%,var(--ink));stroke:var(--m-ring);stroke-width:2.5px}
+.cm-t-water{font-family:var(--f-voice);font-style:italic;font-weight:500;fill:var(--m-water-ink);stroke:var(--water);stroke-width:2.5px}
 .z-lo .cm-t-minor,.z-lo .cm-t-major,.z-lo .cm-t-ped{stroke:var(--map-bg)}
 /* подписи и точки поверх карты */
 .cm-over{position:absolute;inset:0;pointer-events:none}
@@ -372,6 +373,7 @@ h3,h4{font-family:var(--f-title)}
 .cm-mk.v .cm-num{background:color-mix(in srgb,var(--hc) 25%,var(--surface))}
 .cm-mk.on .cm-num{background:var(--hc);color:var(--on-hc)}
 .cm-mk.tg .cm-num{outline:2px dashed var(--hc);outline-offset:3px}
+.cm-mk.many .cm-num{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--hc),0 2px 4px rgba(0,0,0,.3)}
 .cm-mk:focus-visible{outline:none}
 .cm-mk:focus-visible .cm-num{outline:2px solid var(--ink);outline-offset:2px}
 .cm-mlbl{height:20px;padding:0 6px;font:600 11.5px/20px var(--f-ui);color:var(--ink);background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:2px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.18)}

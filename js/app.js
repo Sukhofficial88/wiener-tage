@@ -11,7 +11,7 @@ import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe as updateSchemeMe } from "./map.js";
 import { loadCityMap, mountCityMap } from "./citymap.js";
 
-const APP_VERSION = "0.7.0";
+const APP_VERSION = "0.7.1";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
