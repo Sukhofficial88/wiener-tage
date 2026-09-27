@@ -776,9 +776,6 @@ function openSettings(){
   dlg.setAttribute("aria-label", t("set_title"));
   dlg.innerHTML = `<form method="dialog" class="set">
     <div class="set-head"><h3>${t("set_title")}</h3><button class="btn small" value="close">${t("set_done")}</button></div>
-    <div class="set-voice"><b>${t("set_palette")}</b>
-      <div class="palettes" role="radiogroup" aria-label="${t("set_palette")}">${PALETTES.map(p=>`<label><input type="radio" name="palette" value="${p.id}" ${settings.palette===p.id?"checked":""}><span class="sw-row">${p.sw.map(c=>`<i style="background:${c}"></i>`).join("")}</span>${t("pal_"+p.id)}</label>`).join("")}</div>
-    </div>
     <label class="set-lang"><span>${t("set_lang")}</span><select id="set-lang">${LANGS.map(l=>`<option value="${l.code}" ${l.code===lang()?"selected":""}>${l.name}</option>`).join("")}</select></label>
     ${Voice.ok ? `<div class="set-voice">
       <label for="set-voice"><b>${t("set_voice")}</b></label>
@@ -791,6 +788,9 @@ function openSettings(){
     <label class="sw"><input type="checkbox" id="set-autoVoice" ${settings.autoVoice?"checked":""}><span><b>${t("set_autoVoice")}</b><small>${t("set_autoVoiceDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-vibrate" ${settings.vibrate?"checked":""}><span><b>${t("set_vibrate")}</b><small>${t("set_vibrateDesc")}</small></span></label>
     <label class="sw"><input type="checkbox" id="set-calibrate" ${settings.calibrate?"checked":""}><span><b>${t("set_calib")}</b><small>${t("set_calibDesc")}</small></span></label>
+    <div class="set-voice"><b>${t("set_palette")}</b>
+      <div class="palettes" role="radiogroup" aria-label="${t("set_palette")}">${PALETTES.map(p=>`<label><input type="radio" name="palette" value="${p.id}" ${settings.palette===p.id?"checked":""}><span class="sw-row">${p.sw.map(c=>`<i style="background:${c}"></i>`).join("")}</span>${t("pal_"+p.id)}</label>`).join("")}</div>
+    </div>
     <div class="set-row"><span>${t("set_visited",{n:nVisited})}</span><button class="btn small" type="button" id="set-reset" ${nVisited?"":"disabled"}>${t("set_reset")}</button></div>
     <div class="set-row"><span>${t("set_overrides",{n:nOv})}</span>
       <span class="set-acts"><button class="btn small" type="button" id="set-copy" ${nOv?"":"disabled"}>${t("set_copy")}</button><button class="btn small" type="button" id="set-clear" ${nOv?"":"disabled"}>${t("set_delete")}</button></span></div>
