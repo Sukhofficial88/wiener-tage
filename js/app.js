@@ -8,9 +8,10 @@ import it from "./content/it.js";
 import es from "./content/es.js";
 import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
-import { mapSVG, updateMe } from "./map.js";
+import { mapSVG, updateMe as updateSchemeMe } from "./map.js";
+import { mountRealMap, realMapAvailable } from "./realmap.js";
 
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -33,7 +34,7 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 let visited = load(K.visited, {}) || {};
-let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe"}, load(K.settings, {}) || {});
+let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe", mapMode:"real"}, load(K.settings, {}) || {});
 const PALETTES = [
   {id:"cafe",   sw:["#F3EDE1","#1F4538","#B08D57","#8C2F39"]},
   {id:"gold",   sw:["#121110","#D4AF5A","#F1EADB","#E08A8F"]},
@@ -152,6 +153,54 @@ const isIOS = ()=> /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.p
 const S = {hero:null, active:-1, walk:null, listen:false, installEvt:null, lastPos:null};
 const sameHero = (a, b)=> !!a && !!b && a.id === b.id;
 
+/* ============================ карта ============================ */
+let MAP = null, mapToken = 0;
+function destroyMap(){ mapToken++; if(MAP){ MAP.destroy(); MAP = null; } }
+function showMe(pos){ if(MAP) MAP.updateMe(pos); else updateSchemeMe(pos); }
+function mapNoteText(real){ return real ? t("mapNoteReal") : t("mapNote"); }
+function wireSchemeMarkers(){
+  $$("#map .mk").forEach(g=>{
+    const go = ()=>setActive(+g.dataset.i.split(",")[0], true);
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } });
+  });
+}
+function showScheme(h, stops, note){
+  const box = $("#map"); if(!box) return;
+  box.className = "map-scheme"; box.innerHTML = mapSVG(h, stops);
+  const mn = $("#map-note"); if(mn) mn.textContent = note || mapNoteText(false);
+  const cm = $("#center-me"); if(cm) cm.hidden = true;
+  wireSchemeMarkers(); refreshMarks(); markTarget();
+  if(S.walk && S.walk.pos) updateSchemeMe(S.walk.pos);
+}
+async function mountMap(h, stops){
+  destroyMap();
+  const token = mapToken;
+  $$("[data-mapmode]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.mapmode === settings.mapMode)));
+  if(settings.mapMode !== "real" || !realMapAvailable()){ showScheme(h, stops, settings.mapMode === "real" ? t("mapFallback") : null); return; }
+  const box = $("#map");
+  box.className = "map-real"; box.innerHTML = "";
+  try{
+    const m = await mountRealMap(box, h, stops, {onPick: i=>setActive(i, true)});
+    if(token !== mapToken || !document.body.contains(box)){ m.destroy(); return; }
+    MAP = m;
+    const mn = $("#map-note"); if(mn) mn.textContent = mapNoteText(true);
+    const cm = $("#center-me"); if(cm) cm.hidden = false;
+    refreshMarks(); markTarget();
+    if(S.walk){ if(S.walk.pos) MAP.updateMe(S.walk.pos); MAP.follow(true); MAP.prefetch(); }
+    else if(S.lastPos) MAP.updateMe(S.lastPos);
+  }catch(e){
+    if(token !== mapToken) return;
+    showScheme(h, stops, t("mapFallback"));
+  }
+}
+async function centerMe(){
+  if(!MAP) return;
+  if(MAP.hasMe()){ MAP.follow(true); return; }
+  try{ const pos = await Geo.once(); S.lastPos = pos; MAP.updateMe(pos); MAP.follow(true); }
+  catch(e){ toast(geoErrText(e), null, null, 6000); }
+}
+
 /* ============================ язык ============================ */
 function applyLanguage(code){
   setLang(code);
@@ -254,6 +303,7 @@ function startWalk(demo){
   else Voice.unlock(null, h, null, "audio/silence.mp3");
   prefetchAudio(h);
   lockScreen();
+  if(MAP){ MAP.follow(true); MAP.prefetch(); }
   if(demo) Geo.demo(stops, onPos, ()=>!!Voice.playing || !!(S.walk && S.walk.pending.length), ()=>{});
   else Geo.start(onPos, onGeoErr);
   markTarget(); renderDock();
@@ -264,7 +314,8 @@ function endWalk(silent){
   Geo.stop(); releaseScreen();
   S.walk = null;
   Voice.stop();
-  updateMe(null);
+  showMe(null);
+  if(MAP) MAP.follow(false);
   document.body.classList.remove("walking");
   markTarget(); renderDock();
   if(!silent) toast(t("toastWalkEnded"));
@@ -273,7 +324,7 @@ function endWalk(silent){
 function onPos(pos){
   const w = S.walk; if(!w) return;
   w.pos = pos; w.err = null; S.lastPos = pos;
-  updateMe(pos);
+  showMe(pos);
   if(w.finished || pos.acc > 120 || w.target < 0){ renderDock(); return; }
   const slack = Math.min(pos.acc||0, 25);
   const order = [w.target, ...w.stops.map((_,i)=>i).filter(i=>i !== w.target)];
@@ -331,6 +382,7 @@ function finishWalk(){
 function markTarget(){
   const tg = S.walk && !S.walk.finished ? S.walk.target : -1;
   $$("#map .mk").forEach(g=>g.classList.toggle("tg", g.dataset.i.split(",").map(Number).includes(tg)));
+  if(MAP && S.hero) MAP.setState({active:S.active, visited:new Set(visited[S.hero.id]||[]), target:tg});
 }
 
 /* ============================ dock (нижняя панель) ============================ */
@@ -427,6 +479,7 @@ function installHTML(){
 function refreshInstall(){ const slot = $("#install-slot"); if(slot) slot.innerHTML = installHTML(); }
 
 function renderHome(){
+  destroyMap();
   S.hero = null;
   $("#app").innerHTML = `
   <div class="wrap">
@@ -547,6 +600,7 @@ function footer(){
 /* ============================ hero page ============================ */
 function renderHero(h, keepScroll){
   const y = window.scrollY;
+  destroyMap();
   S.hero = h; S.active = -1;
   const stops = stopsOf(h);
   const st = dayStats(h); const L = legs(stops);
@@ -585,14 +639,21 @@ function renderHero(h, keepScroll){
     ${DECO}
     <section class="day">
       <aside class="mapcard frame" aria-label="${t("mapAria",{title:h.dayTitle})}">
-        <div id="map">${mapSVG(h, stops)}</div>
+        <div class="map-tools">
+          <div class="seg-mini" role="group" aria-label="${t("mapReal")} / ${t("mapScheme")}">
+            <button type="button" data-mapmode="real" aria-pressed="${settings.mapMode==="real"}">${t("mapReal")}</button>
+            <button type="button" data-mapmode="scheme" aria-pressed="${settings.mapMode!=="real"}">${t("mapScheme")}</button>
+          </div>
+          <button class="btn small" type="button" id="center-me" hidden>${ICON.pin}${t("centerMe")}</button>
+        </div>
+        <div id="map"></div>
         <div class="map-foot">
           <div class="progress"><span class="bar"><i id="prog-bar"></i></span><span id="prog-txt"></span></div>
           <span class="legend"><svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="2.5"/></svg> ${t("legendWalk")}
           ${st.transit?`<svg width="26" height="8"><line x1="1" y1="4" x2="25" y2="4" stroke="var(--hc)" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/></svg> ${t("legendTransit")}`:""}
           <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--me)" stroke="var(--surface)" stroke-width="2"/></svg> ${t("legendMe")}</span>
         </div>
-        <p class="mapnote">${t("mapNote")}</p>
+        <p class="mapnote" id="map-note">${mapNoteText(settings.mapMode==="real")}</p>
       </aside>
       <div class="stops">
         ${stops.map((s,i)=>stopHTML(h,s,i,L[i])).join("")}
@@ -612,7 +673,7 @@ function renderHero(h, keepScroll){
   </div>`;
   wireHero(h);
   refreshMarks(); markTarget(); updateVoiceUI();
-  if(S.walk && S.walk.pos) updateMe(S.walk.pos);
+  mountMap(h, stops);
   if(keepScroll) window.scrollTo({top:y, behavior:"instant"});
 }
 
@@ -702,11 +763,12 @@ function wireHero(h){
     $$("[data-pane]", f).forEach(p=>{ p.hidden = p.dataset.pane !== b.dataset.tab; });
   }));
   $$(".stop").forEach(el=>el.addEventListener("click", e=>{ if(e.target.closest("a,button")) return; setActive(+el.dataset.i, false); }));
-  $$("#map .mk").forEach(g=>{
-    const go = ()=>setActive(+g.dataset.i.split(",")[0], true);
-    g.addEventListener("click", go);
-    g.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); go(); } });
-  });
+  $$("[data-mapmode]").forEach(b=>b.addEventListener("click", ()=>{
+    if(settings.mapMode === b.dataset.mapmode) return;
+    settings.mapMode = b.dataset.mapmode; save(K.settings, settings);
+    mountMap(S.hero, S.walk && sameHero(S.walk.hero, h) ? S.walk.stops : stopsOf(h));
+  }));
+  $("#center-me").addEventListener("click", centerMe);
   const hp = $("#hear-play");
   if(hp){
     hp.addEventListener("click", e=>{
@@ -732,6 +794,7 @@ function syncVisitUI(i){
 
 function setActive(i, scroll){
   S.active = i;
+  if(MAP && !scroll && !(S.walk && !S.walk.finished)) MAP.focus(i);
   $$(".stop").forEach(el=>el.classList.toggle("on", +el.dataset.i === i));
   refreshMarks();
   if(scroll){ const el = $(`#stop-${i} .stop-card`); if(el) el.scrollIntoView({behavior:reduceMotion?"auto":"smooth", block:"center"}); }
@@ -743,6 +806,7 @@ function refreshMarks(){
     g.classList.toggle("on", ids.includes(S.active));
     g.classList.toggle("v", ids.some(i=>isVisited(S.hero.id, i)));
   });
+  if(MAP) MAP.setState({active:S.active, visited:new Set(visited[S.hero.id]||[]), target: S.walk && !S.walk.finished ? S.walk.target : -1});
   const n = (visited[S.hero.id]||[]).length, total = S.hero.stops.length;
   const bar = $("#prog-bar"), txt = $("#prog-txt");
   if(bar) bar.style.width = (n/total*100)+"%";
@@ -798,7 +862,7 @@ function openSettings(){
     <p class="set-note">${sw?t("set_offlineOn"):t("set_offlineOff")}<br>${t("set_version",{v:APP_VERSION})}</p>
   </form>`;
   $("#set-lang", dlg).addEventListener("change", e=>{ changeLanguage(e.target.value); openSettings(); });
-  $$('input[name="palette"]', dlg).forEach(r=>r.addEventListener("change", e=>{ settings.palette = e.target.value; save(K.settings, settings); applyPalette(); }));
+  $$('input[name="palette"]', dlg).forEach(r=>r.addEventListener("change", e=>{ settings.palette = e.target.value; save(K.settings, settings); applyPalette(); if(S.hero && MAP) mountMap(S.hero, stopsOf(S.hero)); }));
   const vs = $("#set-voice", dlg);
   if(vs){
     vs.addEventListener("change", e=>{

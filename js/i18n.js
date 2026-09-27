@@ -76,7 +76,8 @@ ru: {
   lm_stephansdom:"Стефансдом", lm_opera:"Опера", lm_hofburg:"Хофбург", lm_rathaus:"Ратуша", lm_karlskirche:"Карлскирхе", lm_belvedere:"Бельведер",
   lm_naschmarkt:"Нашмаркт", lm_prater:"Пратер", lm_schoenbrunnPalace:"дворец Шёнбрунн", lm_westbahnhof:"Вестбанхоф",
   voiceRecorded:"Монологи озвучены нейросетевыми голосами (модель Kokoro). В финальной версии их прочтут актёры.", voiceHint:"Звучит механически? Выберите голос получше в настройках или скачайте улучшенный: на iPhone — Настройки → Универсальный доступ → Устный контент → Голоса; на Android — настройки синтеза речи Google. В браузере Microsoft Edge на компьютере есть естественные голоса.", set_voice:"Голос синтезатора", set_voiceAuto:"Лучший доступный", set_voiceTest:"Прослушать", set_voiceNote:"Для языков, где ещё нет записей. Самые живые голоса помечены Natural, Premium или Enhanced.", set_voiceNone:"Для этого языка в системе нет голосов.", voiceSample:"Доброе утро! Сегодня мы проживём один день в Вене.",
-  howToUse:"Как пользоваться", set_palette:"Оформление", pal_cafe:"Кафе Централь", pal_gold:"Золото Сецессиона", pal_pastel:"Венская пастель"
+  howToUse:"Как пользоваться", set_palette:"Оформление", pal_cafe:"Кафе Централь", pal_gold:"Золото Сецессиона", pal_pastel:"Венская пастель",
+  mapReal:"Карта", mapScheme:"Схема", centerMe:"Где я", mapNoteReal:"Маршрут проложен по улицам, пунктир — отрезки на транспорте. Нажмите на точку, чтобы открыть место. Карта © OpenStreetMap.", mapFallback:"Карта сейчас не загрузилась (нет интернета или доступа), поэтому показана схема."
 },
 /* ---------------------------------------------------------------- DE */
 de: {
@@ -143,7 +144,8 @@ de: {
   lm_stephansdom:"Stephansdom", lm_opera:"Staatsoper", lm_hofburg:"Hofburg", lm_rathaus:"Rathaus", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Schloss Schönbrunn", lm_westbahnhof:"Westbahnhof",
   voiceRecorded:"Die Monologe sprechen neuronale Stimmen (Modell Kokoro). In der endgültigen Version lesen sie Schauspieler.", voiceHint:"Klingt es mechanisch? Wählen Sie in den Einstellungen eine bessere Stimme oder laden Sie eine erweiterte herunter: iPhone — Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen; Android — Einstellungen der Google-Sprachausgabe. Im Browser Microsoft Edge am Computer gibt es natürliche Stimmen.", set_voice:"Stimme der Sprachausgabe", set_voiceAuto:"Beste verfügbare", set_voiceTest:"Anhören", set_voiceNote:"Für Sprachen ohne Aufnahmen. Die natürlichsten Stimmen tragen Natural, Premium oder Enhanced im Namen.", set_voiceNone:"Für diese Sprache ist keine Stimme installiert.", voiceSample:"Guten Morgen! Heute erleben wir einen Tag in Wien.",
-  howToUse:"Gebrauchsanleitung", set_palette:"Farbschema", pal_cafe:"Café Central", pal_gold:"Secessionsgold", pal_pastel:"Wiener Pastell"
+  howToUse:"Gebrauchsanleitung", set_palette:"Farbschema", pal_cafe:"Café Central", pal_gold:"Secessionsgold", pal_pastel:"Wiener Pastell",
+  mapReal:"Karte", mapScheme:"Skizze", centerMe:"Wo bin ich", mapNoteReal:"Die Route folgt den Straßen, gestrichelt sind Abschnitte mit den Öffis. Tippen Sie auf einen Punkt, um den Ort zu öffnen. Karte © OpenStreetMap.", mapFallback:"Die Karte wurde gerade nicht geladen (kein Internet oder kein Zugriff), daher wird die Skizze gezeigt."
 },
 /* ---------------------------------------------------------------- EN */
 en: {
@@ -210,7 +212,8 @@ en: {
   lm_stephansdom:"St Stephen’s", lm_opera:"State Opera", lm_hofburg:"Hofburg", lm_rathaus:"City Hall", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Schönbrunn Palace", lm_westbahnhof:"Westbahnhof",
   voiceRecorded:"The monologues are voiced with neural voices (Kokoro model). Actors will record the final version.", voiceHint:"Sounds robotic? Pick a better voice in Settings or download an enhanced one: iPhone — Settings → Accessibility → Spoken Content → Voices; Android — Google speech settings. Microsoft Edge on a computer offers natural voices.", set_voice:"Speech voice", set_voiceAuto:"Best available", set_voiceTest:"Preview", set_voiceNote:"Used for languages without recordings. The most natural voices are marked Natural, Premium or Enhanced.", set_voiceNone:"No voice is installed for this language.", voiceSample:"Good morning! Today we will live one day in Vienna.",
-  howToUse:"How to use", set_palette:"Colour scheme", pal_cafe:"Café Central", pal_gold:"Secession Gold", pal_pastel:"Viennese Pastel"
+  howToUse:"How to use", set_palette:"Colour scheme", pal_cafe:"Café Central", pal_gold:"Secession Gold", pal_pastel:"Viennese Pastel",
+  mapReal:"Map", mapScheme:"Diagram", centerMe:"Where am I", mapNoteReal:"The route follows the streets; dotted parts are by public transport. Tap a point to open the place. Map © OpenStreetMap.", mapFallback:"The map couldn’t load (no internet or no access), so the diagram is shown instead."
 },
 /* ---------------------------------------------------------------- FR */
 fr: {
@@ -277,7 +280,8 @@ fr: {
   lm_stephansdom:"St-Étienne", lm_opera:"Opéra", lm_hofburg:"Hofburg", lm_rathaus:"Hôtel de ville", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvédère",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"château de Schönbrunn", lm_westbahnhof:"Westbahnhof",
   voiceRecorded:"Les monologues sont dits par des voix neuronales (modèle Kokoro). Dans la version finale, des comédiens les enregistreront.", voiceHint:"La voix sonne mécanique ? Choisissez une meilleure voix dans les réglages ou téléchargez une voix améliorée : iPhone — Réglages → Accessibilité → Contenu énoncé → Voix ; Android — réglages de la synthèse vocale Google. Le navigateur Microsoft Edge sur ordinateur propose des voix naturelles.", set_voice:"Voix de synthèse", set_voiceAuto:"Meilleure disponible", set_voiceTest:"Écouter", set_voiceNote:"Pour les langues sans enregistrements. Les voix les plus naturelles portent la mention Natural, Premium ou Enhanced.", set_voiceNone:"Aucune voix n’est installée pour cette langue.", voiceSample:"Bonjour ! Aujourd’hui, nous allons vivre une journée à Vienne.",
-  howToUse:"Mode d’emploi", set_palette:"Palette", pal_cafe:"Café Central", pal_gold:"Or de la Sécession", pal_pastel:"Pastel viennois"
+  howToUse:"Mode d’emploi", set_palette:"Palette", pal_cafe:"Café Central", pal_gold:"Or de la Sécession", pal_pastel:"Pastel viennois",
+  mapReal:"Carte", mapScheme:"Schéma", centerMe:"Où suis-je", mapNoteReal:"L’itinéraire suit les rues ; les pointillés indiquent les trajets en transports. Touchez un point pour ouvrir le lieu. Carte © OpenStreetMap.", mapFallback:"La carte n’a pas pu se charger (pas d’internet ou d’accès), le schéma est affiché à la place."
 },
 /* ---------------------------------------------------------------- IT */
 it: {
@@ -344,7 +348,8 @@ it: {
   lm_stephansdom:"Santo Stefano", lm_opera:"Opera", lm_hofburg:"Hofburg", lm_rathaus:"Municipio", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Castello di Schönbrunn", lm_westbahnhof:"Westbahnhof",
   voiceRecorded:"I monologhi sono letti da voci neurali (modello Kokoro). Nella versione finale li registreranno degli attori.", voiceHint:"Suona meccanica? Scegli una voce migliore nelle impostazioni o scaricane una avanzata: iPhone — Impostazioni → Accessibilità → Contenuto letto ad alta voce → Voci; Android — impostazioni della sintesi vocale Google. Il browser Microsoft Edge sul computer offre voci naturali.", set_voice:"Voce della sintesi", set_voiceAuto:"Migliore disponibile", set_voiceTest:"Ascolta", set_voiceNote:"Per le lingue senza registrazioni. Le voci più naturali riportano Natural, Premium o Enhanced.", set_voiceNone:"Per questa lingua non è installata alcuna voce.", voiceSample:"Buongiorno! Oggi vivremo una giornata a Vienna.",
-  howToUse:"Come si usa", set_palette:"Colori", pal_cafe:"Café Central", pal_gold:"Oro della Secessione", pal_pastel:"Pastello viennese"
+  howToUse:"Come si usa", set_palette:"Colori", pal_cafe:"Café Central", pal_gold:"Oro della Secessione", pal_pastel:"Pastello viennese",
+  mapReal:"Mappa", mapScheme:"Schema", centerMe:"Dove sono", mapNoteReal:"Il percorso segue le strade; il tratteggio indica i tragitti con i mezzi. Tocca un punto per aprire il luogo. Mappa © OpenStreetMap.", mapFallback:"La mappa non si è caricata (niente internet o accesso), quindi viene mostrato lo schema."
 },
 /* ---------------------------------------------------------------- ES */
 es: {
@@ -411,7 +416,8 @@ es: {
   lm_stephansdom:"San Esteban", lm_opera:"Ópera", lm_hofburg:"Hofburg", lm_rathaus:"Ayuntamiento", lm_karlskirche:"Karlskirche", lm_belvedere:"Belvedere",
   lm_naschmarkt:"Naschmarkt", lm_prater:"Prater", lm_schoenbrunnPalace:"Palacio de Schönbrunn", lm_westbahnhof:"Westbahnhof",
   voiceRecorded:"Los monólogos los leen voces neuronales (modelo Kokoro). En la versión final los grabarán actores.", voiceHint:"¿Suena mecánica? Elige una voz mejor en los ajustes o descarga una mejorada: iPhone — Ajustes → Accesibilidad → Contenido leído → Voces; Android — ajustes de la síntesis de voz de Google. El navegador Microsoft Edge en el ordenador ofrece voces naturales.", set_voice:"Voz de síntesis", set_voiceAuto:"La mejor disponible", set_voiceTest:"Escuchar", set_voiceNote:"Para los idiomas sin grabaciones. Las voces más naturales llevan Natural, Premium o Enhanced en el nombre.", set_voiceNone:"No hay ninguna voz instalada para este idioma.", voiceSample:"¡Buenos días! Hoy viviremos un día en Viena.",
-  howToUse:"Cómo se usa", set_palette:"Colores", pal_cafe:"Café Central", pal_gold:"Oro de la Secesión", pal_pastel:"Pastel vienés"
+  howToUse:"Cómo se usa", set_palette:"Colores", pal_cafe:"Café Central", pal_gold:"Oro de la Secesión", pal_pastel:"Pastel vienés",
+  mapReal:"Mapa", mapScheme:"Esquema", centerMe:"Dónde estoy", mapNoteReal:"La ruta sigue las calles; lo punteado son trayectos en transporte. Toca un punto para abrir el lugar. Mapa © OpenStreetMap.", mapFallback:"El mapa no se ha podido cargar (sin internet o sin acceso), así que se muestra el esquema."
 }
 };
 
