@@ -29,7 +29,7 @@ export function mapSVG(h, pts){
     <g clip-path="url(#clip)">`;
   CTX.parks.forEach(p=>{ g += `<path class="m-park" d="${path(p.pts)}Z"/>`; });
   g += `<path class="m-water" d="${path(CTX.canal)}"/><path class="m-water" d="${path(CTX.wien)}"/><path class="m-brook" d="${path(CTX.brook)}"/><path class="m-ring" d="${path(CTX.ring)}"/>`;
-  CTX.labels.forEach(l=>{ const at = l.at.map(c=>P(c[0],c[1])).find(xy=>inView(xy,40) && far(xy,40)); if(at) g += `<text class="m-ctx" x="${at[0]}" y="${at[1]}" text-anchor="middle">${t("map_"+l.k)}</text>`; });
+  CTX.labels.forEach(l=>{ const txt = t("map_"+l.k); const at = l.at.map(c=>P(c[0],c[1])).find(xy=>inView(xy, Math.max(40, txt.length*3.6+6)) && far(xy,40)); if(at) g += `<text class="m-ctx" x="${at[0]}" y="${at[1]}" text-anchor="middle">${txt}</text>`; });
   CTX.parks.forEach(p=>{ const c = P((p.pts[0][0]+p.pts[2][0])/2, (p.pts[0][1]+p.pts[1][1])/2); if(inView(c,30) && far(c,40)) g += `<text class="m-ctx" x="${c[0]}" y="${c[1]+22}" text-anchor="middle">${t("map_"+p.k)}</text>`; });
   CTX.landmarks.forEach(l=>{ const xy = P(l.lat,l.lng); if(inView(xy,24) && far(xy,34)) g += `<circle class="m-lmdot" cx="${xy[0]}" cy="${xy[1]}" r="2.2"/><text class="m-lm" x="${xy[0]+6}" y="${xy[1]+4}">${t("lm_"+l.k)}</text>`; });
   pts.forEach((p,i)=>{ if(!i) return; const a = stopXY[i-1], b = stopXY[i]; g += `<line class="m-route${p.go?" transit":""}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`; });
@@ -43,12 +43,17 @@ export function mapSVG(h, pts){
     const [x,y] = gr.xy; const label = gr.ids.map(i=>i+1).join("·");
     const wd = label.length > 1 ? 14+label.length*6.5 : 0;
     const shape = wd ? `<rect class="shape" x="${x-wd/2}" y="${y-11}" width="${wd}" height="22" rx="11"/>` : `<circle class="shape" cx="${x}" cy="${y}" r="11"/>`;
-    const right = x < W-130;
-    const lx = right ? x+(wd?wd/2:11)+6 : x-(wd?wd/2:11)-6;
+    // Подпись справа; если там соседняя точка — слева; если заняты обе стороны — снизу
+    const near = (dir)=>groups.some(o=>o !== gr && Math.abs(o.xy[1]-y) < 16 && (dir > 0 ? o.xy[0] > x && o.xy[0]-x < 95 : o.xy[0] < x && x-o.xy[0] < 95));
+    let side = x < W-130 ? "r" : "l";
+    if(side === "r" && near(1)) side = (x > 100 && !near(-1)) ? "l" : "b";
+    else if(side === "l" && near(-1)) side = (x < W-100 && !near(1)) ? "r" : "b";
+    const half = wd ? wd/2 : 11;
+    const lx = side === "r" ? x+half+6 : side === "l" ? x-half-6 : x;
     g += `<g class="mk" data-i="${gr.ids.join(",")}" tabindex="0" role="button" aria-label="${gr.ids.map(i=>(i+1)+". "+pts[i].title).join("; ")}">
       <circle class="ring" cx="${x}" cy="${y}" r="17"/>
       <circle class="pulse" cx="${x}" cy="${y}" r="12" style="transform-origin:${x}px ${y}px"/>${shape}<text x="${x}" y="${y}">${label}</text>
-      <text class="lbl${right?"":" end"}" x="${lx}" y="${y+4}">${pts[gr.ids[0]].short}</text></g>`;
+      <text class="lbl${side==="l"?" end":side==="b"?" mid":""}" x="${lx}" y="${side==="b"?y+26:y+4}">${pts[gr.ids[0]].short}</text></g>`;
   });
 
   // Я: поверх маркеров, но внутри рамки схемы

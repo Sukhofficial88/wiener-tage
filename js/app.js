@@ -10,7 +10,7 @@ import { Geo, dist } from "./geo.js";
 import { Voice, Hear } from "./audio.js";
 import { mapSVG, updateMe } from "./map.js";
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -33,7 +33,18 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
 let visited = load(K.visited, {}) || {};
-let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}}, load(K.settings, {}) || {});
+let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voices:{}, palette:"cafe"}, load(K.settings, {}) || {});
+const PALETTES = [
+  {id:"cafe",   sw:["#F3EDE1","#1F4538","#B08D57","#8C2F39"]},
+  {id:"gold",   sw:["#121110","#D4AF5A","#F1EADB","#E08A8F"]},
+  {id:"pastel", sw:["#F7F2EA","#557C67","#A9575E","#4F6F94"]}
+];
+function applyPalette(){
+  const el = document.documentElement;
+  if(settings.palette && settings.palette !== "cafe") el.dataset.palette = settings.palette; else delete el.dataset.palette;
+  const bg = getComputedStyle(el).getPropertyValue("--bg").trim();
+  $$('meta[name="theme-color"]').forEach(m=>m.setAttribute("content", bg));
+}
 let overrides = load(K.overrides, {}) || {};
 
 const isVisited = (id, i)=> (visited[id]||[]).includes(i);
@@ -115,13 +126,15 @@ const ICON = {
 
 function monogram(h, size){
   const s = size || 56;
+  const oct = (m)=>{ const a = m, b = 60-m, c = m+14, d = 46-m; return `M${c} ${a}H${d}L${b} ${c}V${d}L${d} ${b}H${c}L${a} ${d}V${c}Z`; };
   return `<svg width="${s}" height="${s}" viewBox="0 0 60 60" role="img" aria-label="${h.name}">
-    <rect x="1" y="1" width="58" height="58" fill="none" stroke="var(--hc)" stroke-width="1.5"/>
-    <rect x="6" y="6" width="48" height="48" fill="none" stroke="var(--hc)" stroke-width=".75"/>
-    ${[[1,1],[53,1],[1,53],[53,53]].map(([x,y])=>`<rect x="${x}" y="${y}" width="3" height="3" fill="var(--hc)"/><rect x="${x+3}" y="${y+3}" width="3" height="3" fill="var(--hc)"/>`).join("")}
-    <text x="30" y="32" text-anchor="middle" dominant-baseline="central" font-family="Forum, Georgia, serif" font-size="${h.mono.length>2?17:22}" fill="var(--hc)" letter-spacing="1">${h.mono}</text>
+    <path d="${oct(1)}" fill="color-mix(in srgb, var(--hc) 8%, var(--surface))" stroke="var(--hc)" stroke-width="1.5"/>
+    <path d="${oct(5)}" fill="none" stroke="var(--deco)" stroke-width=".8"/>
+    <path d="M30 4.5l2 2.5-2 2.5-2-2.5zM30 50.5l2 2.5-2 2.5-2-2.5z" fill="var(--deco)"/>
+    <text x="30" y="31" text-anchor="middle" dominant-baseline="central" font-family="Forum, Georgia, serif" font-size="${h.mono.length>2?16:21}" fill="var(--hc)" letter-spacing="1">${h.mono}</text>
   </svg>`;
 }
+const DECO = `<p class="deco" aria-hidden="true"><svg viewBox="0 0 46 12"><path d="M23 1l5 5-5 5-5-5z" fill="currentColor"/><path d="M11 6l3-3 3 3-3 3zM29 6l3-3 3 3-3 3z" fill="none" stroke="currentColor" stroke-width="1"/><path d="M0 6h9M37 6h9" stroke="currentColor" stroke-width="1"/></svg></p>`;
 
 function toast(msg, actionLabel, action, ms){
   const el = $("#toast");
@@ -348,6 +361,7 @@ function renderDock(){
     } else if(w.finished || w.target < 0){
       main = t("dayDone");
       sub = t("dayDoneText", {...heroVars(w.hero), epilogue:w.hero.epilogue});
+      acts.push(dockBtn("walk-end", t("finish"), "check", true));
     } else if(w.err && w.err.code !== 3 && !w.pos){
       main = t("noGeo"); sub = geoErrText(w.err);
       acts.push(dockBtn("demo", t("demoWalk"), "demo", true));
@@ -364,12 +378,11 @@ function renderDock(){
       acts.push(dockBtn("arrive", t("arrivedBtn"), "check", true));
       acts.push(`<a class="btn small" href="${mapsNav(tg)}" target="_blank" rel="noopener">${ICON.out}${t("howToGet")}</a>`);
     }
-    acts.push(dockBtn("walk-end", t("finish")));
     d.className = `dock walk h-${w.hero.id}`;
     d.innerHTML = `<div class="dock-in">
-      <div class="dock-top">${chip}<span class="dock-hero">${t("walkWith", heroVars(w.hero))}</span></div>
+      <div class="dock-top">${chip}<span class="dock-hero">${t("walkWith", heroVars(w.hero))}</span><button type="button" class="dock-x" data-act="walk-end">${t("finish")} ✕</button></div>
       <div class="dock-main"><b>${main}</b><span>${sub}</span></div>
-      <div class="dock-actions">${acts.join("")}</div></div>`;
+      ${acts.length?`<div class="dock-actions">${acts.join("")}</div>`:""}</div>`;
     d.hidden = false;
     return;
   }
@@ -405,9 +418,9 @@ const SPHERES = ["all","music","painting","science","ballet","film"];
 
 function installHTML(){
   if(isStandalone() || load(K.install, false)) return "";
-  if(S.installEvt) return `<div class="install"><div><b>${t("installTitle")}</b><span>${t("installText")}</span></div>
+  if(S.installEvt) return `<div class="install frame"><div><b>${t("installTitle")}</b><span>${t("installText")}</span></div>
     <div class="install-acts"><button class="btn small solid" type="button" data-install="go">${t("installBtn")}</button><button class="btn small" type="button" data-install="hide">${t("notNow")}</button></div></div>`;
-  if(isIOS()) return `<div class="install"><div><b>${t("iosTitle")}</b><span>${t("iosText")}</span></div>
+  if(isIOS()) return `<div class="install frame"><div><b>${t("iosTitle")}</b><span>${t("iosText")}</span></div>
     <div class="install-acts"><button class="btn small" type="button" data-install="hide">${t("gotIt")}</button></div></div>`;
   return "";
 }
@@ -430,17 +443,18 @@ function renderHome(){
       </div>
     </section>
   </div>
-  <div class="check" aria-hidden="true"></div>
   <div class="wrap">
+    ${DECO}
     <section class="section" id="heroes">
       <div class="section-head"><h2>${t("heroesTitle")}</h2><p>${t("heroesSub")}</p></div>
       <div class="cards">${LOC.heroes.map(heroCard).join("")}</div>
       <div class="soon">${LOC.upcoming.map(soonCard).join("")}</div>
       <p class="note is-hidden" id="empty-note">${t("emptyNote")}</p>
     </section>
+    ${DECO}
     <section class="section" id="timeline">
       <div class="section-head"><h2>${t("tlTitle")}</h2><p>${t("tlSub")}</p></div>
-      <div class="tl-box">${timelineSVG()}</div>
+      <div class="tl-box frame">${timelineSVG()}</div>
       <div class="tl-legend">
         <span><i style="width:18px;height:8px;background:var(--c-mozart)"></i>${t("tlYears")}</span>
         <span><i style="width:18px;height:8px;background:var(--line-strong)"></i>${t("tlSoon")}</span>
@@ -448,6 +462,7 @@ function renderHome(){
       </div>
       <div class="links">${LOC.links.map(linkCard).join("")}</div>
     </section>
+    ${DECO}
     <section class="section" id="how">
       <div class="section-head"><h2>${t("howTitle")}</h2><p>${t("howSub")}</p></div>
       <div class="how">${LOC.how.map(([e,ti,p])=>`<div><p class="eyebrow">${e}</p><h4>${ti}</h4><p>${p}</p></div>`).join("")}</div>
@@ -472,7 +487,7 @@ function applyFilter(){
 
 function heroCard(h){
   const st = dayStats(h); const v = (visited[h.id]||[]).length;
-  return `<a class="card h-${h.id}" href="#${h.id}" data-card-sphere="${h.sphere}">
+  return `<a class="card frame h-${h.id}" href="#${h.id}" data-card-sphere="${h.sphere}">
     <div class="band" aria-hidden="true"></div>
     <div class="card-in">
       <div class="card-top">${monogram(h,48)}<p class="eyebrow">${t("sphere_"+h.sphere)}<br>${h.years}</p></div>
@@ -523,7 +538,7 @@ function timelineSVG(){
 }
 function footer(){
   return `<footer class="foot">
-    <div class="check thin" aria-hidden="true" style="width:120px"></div>
+    ${DECO}
     <p>${t("footer1", {v:APP_VERSION})}</p>
     <p>${t("footer2")}</p>
   </footer>`;
@@ -542,35 +557,34 @@ function renderHero(h, keepScroll){
   <div class="wrap">
     <a class="back" href="#heroes">${t("back")}</a>
     <section class="hh">
-      <div class="mono-big">${monogram(h,112)}</div>
-      <div>
-        <p class="eyebrow">${t("sphere_"+h.sphere)} · ${h.years} · ${h.inVienna}</p>
-        <h1>${h.name}</h1>
-        <p class="hh-day"><span class="date">${h.date}</span><span>${h.dayTitle}</span></p>
-        <p class="lede">${h.lede}</p>
-        <ul class="stats">
-          <li><b>${fmtNum(st.places)}</b><span>${tp("pl_places", st.places)}</span></li>
-          <li><b>${t("u_km",{n:km(st.walkM)})}</b><span>${t("statWalk")}</span></li>
-          ${st.transit?`<li><b>${fmtNum(st.transit)}</b><span>${tp("pl_trips", st.transit)}</span></li>`:""}
-          <li><b>≈ ${fmtMin(st.minutes)}</b><span>${t("statTour")}</span></li>
-          <li><b>${stops[0].time}–${stops[stops.length-1].time}</b><span>${t("statDay")}</span></li>
-        </ul>
-        <div class="actions">
-          <button class="btn solid" type="button" id="walk-start">${ICON.walk}${t("startWalk")}</button>
-          <button class="btn" type="button" id="play-day" ${Voice.ok?"":"disabled"}>${ICON.play}${t("listenDay")}</button>
-          <button class="btn" type="button" id="walk-demo">${ICON.demo}${t("demoWalk")}</button>
-          <a class="btn" href="${mapsRoute(stops)}" target="_blank" rel="noopener">${ICON.out}${t("routeMaps")}</a>
+      <div class="hh-top">
+        <div class="mono-big">${monogram(h,72)}</div>
+        <div>
+          <p class="eyebrow">${t("sphere_"+h.sphere)} · ${h.years} · ${h.inVienna}</p>
+          <h1>${h.name}</h1>
+          <p class="hh-day"><span class="date">${h.date}</span><span>${h.dayTitle}</span></p>
         </div>
-        <p class="note"><b>${t("startLabel")}</b> ${h.start}</p>
-        <p class="note">${t("walkNote")}</p>
-        <p class="note" id="voice-note">${voiceNote()}</p>
       </div>
+      <p class="lede">${h.lede}</p>
+      <ul class="stats">
+        <li><b>${fmtNum(st.places)}</b><span>${tp("pl_places", st.places)}</span></li>
+        <li><b>${t("u_km",{n:km(st.walkM)})}</b><span>${t("statWalk")}</span></li>
+        ${st.transit?`<li><b>${fmtNum(st.transit)}</b><span>${tp("pl_trips", st.transit)}</span></li>`:""}
+        <li><b>≈ ${fmtMin(st.minutes)}</b><span>${t("statTour")}</span></li>
+        <li><b>${stops[0].time}–${stops[stops.length-1].time}</b><span>${t("statDay")}</span></li>
+      </ul>
+      <div class="actions">
+        <button class="btn solid big" type="button" id="walk-start">${ICON.walk}${t("startWalk")}</button>
+        <button class="btn" type="button" id="play-day" ${Voice.ok || recorded(h)?"":"disabled"}>${ICON.play}${t("listenDay")}</button>
+        <button class="btn" type="button" id="walk-demo">${ICON.demo}${t("demoWalk")}</button>
+        <a class="btn" href="${mapsRoute(stops)}" target="_blank" rel="noopener">${ICON.out}${t("routeMaps")}</a>
+      </div>
+      <p class="start-line">${ICON.pin}<span><b>${t("startLabel")}</b> ${h.start}</span></p>
+      <details class="howto"><summary>${t("howToUse")}</summary><p>${t("walkNote")}</p><p id="voice-note">${voiceNote()}</p></details>
     </section>
-  </div>
-  <div class="check thin" aria-hidden="true" style="background-image:repeating-conic-gradient(var(--hc) 0 25%,transparent 0 50%)"></div>
-  <div class="wrap">
+    ${DECO}
     <section class="day">
-      <aside class="mapcard" aria-label="${t("mapAria",{title:h.dayTitle})}">
+      <aside class="mapcard frame" aria-label="${t("mapAria",{title:h.dayTitle})}">
         <div id="map">${mapSVG(h, stops)}</div>
         <div class="map-foot">
           <div class="progress"><span class="bar"><i id="prog-bar"></i></span><span id="prog-txt"></span></div>
@@ -616,11 +630,11 @@ function stopHTML(h, s, i, leg){
     </div>` : "";
   return `${legHTML}
   <article class="stop${v?" v":""}" id="stop-${i}" data-i="${i}">
-    <div class="stop-time">${s.time}</div>
-    <div class="stop-card">
-      <div class="stop-head"><span class="num">${i+1}</span>
-        <div><h3>${s.title}</h3><p class="place">${s.place} · ${s.addr}</p></div>
-      </div>
+    <div class="stop-card frame">
+      <header class="stop-head"><span class="num">${i+1}</span>
+        <div class="stop-title"><span class="time">${s.time}</span><h3>${s.title}</h3></div>
+      </header>
+      <p class="place">${s.place} · ${s.addr}</p>
       <blockquote class="voice">${s.voice}</blockquote>
       <p class="src">${s.src}</p>
       <div class="stop-actions">
@@ -631,8 +645,12 @@ function stopHTML(h, s, i, leg){
       ${calib}
       ${s.moment==="hearing"?momentHTML():""}
       <div class="facts">
-        <div><p class="eyebrow">${t("factLabel")}</p><p>${s.fact}</p></div>
-        <div class="now"><p class="eyebrow">${t("nowLabel")}</p><p>${s.now}</p></div>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" aria-selected="true" data-tab="fact">${t("factLabel")}</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="now">${t("nowLabel")}</button>
+        </div>
+        <p data-pane="fact">${s.fact}</p>
+        <p data-pane="now" hidden>${s.now}</p>
       </div>
     </div>
   </article>`;
@@ -678,6 +696,11 @@ function wireHero(h){
     if(S.walk){ isVisited(h.id,i) ? S.walk.done.add(i) : S.walk.done.delete(i); S.walk.target = nextTarget(); markTarget(); renderDock(); }
   }));
   $$("[data-calib]").forEach(b=>b.addEventListener("click", e=>{ e.stopPropagation(); calibrate(h, +b.dataset.calib); }));
+  $$(".tabs button").forEach(b=>b.addEventListener("click", e=>{
+    e.stopPropagation(); const f = b.closest(".facts");
+    $$(".tabs button", f).forEach(x=>x.setAttribute("aria-selected", String(x === b)));
+    $$("[data-pane]", f).forEach(p=>{ p.hidden = p.dataset.pane !== b.dataset.tab; });
+  }));
   $$(".stop").forEach(el=>el.addEventListener("click", e=>{ if(e.target.closest("a,button")) return; setActive(+el.dataset.i, false); }));
   $$("#map .mk").forEach(g=>{
     const go = ()=>setActive(+g.dataset.i.split(",")[0], true);
@@ -753,6 +776,9 @@ function openSettings(){
   dlg.setAttribute("aria-label", t("set_title"));
   dlg.innerHTML = `<form method="dialog" class="set">
     <div class="set-head"><h3>${t("set_title")}</h3><button class="btn small" value="close">${t("set_done")}</button></div>
+    <div class="set-voice"><b>${t("set_palette")}</b>
+      <div class="palettes" role="radiogroup" aria-label="${t("set_palette")}">${PALETTES.map(p=>`<label><input type="radio" name="palette" value="${p.id}" ${settings.palette===p.id?"checked":""}><span class="sw-row">${p.sw.map(c=>`<i style="background:${c}"></i>`).join("")}</span>${t("pal_"+p.id)}</label>`).join("")}</div>
+    </div>
     <label class="set-lang"><span>${t("set_lang")}</span><select id="set-lang">${LANGS.map(l=>`<option value="${l.code}" ${l.code===lang()?"selected":""}>${l.name}</option>`).join("")}</select></label>
     ${Voice.ok ? `<div class="set-voice">
       <label for="set-voice"><b>${t("set_voice")}</b></label>
@@ -772,6 +798,7 @@ function openSettings(){
     <p class="set-note">${sw?t("set_offlineOn"):t("set_offlineOff")}<br>${t("set_version",{v:APP_VERSION})}</p>
   </form>`;
   $("#set-lang", dlg).addEventListener("change", e=>{ changeLanguage(e.target.value); openSettings(); });
+  $$('input[name="palette"]', dlg).forEach(r=>r.addEventListener("change", e=>{ settings.palette = e.target.value; save(K.settings, settings); applyPalette(); }));
   const vs = $("#set-voice", dlg);
   if(vs){
     vs.addEventListener("change", e=>{
@@ -853,6 +880,7 @@ function route(){
 }
 
 /* ============================ start ============================ */
+applyPalette();
 applyLanguage(detectLang(load(K.lang, null)));
 Voice.init(langInfo().tts, settings.voices);
 netStatus();
