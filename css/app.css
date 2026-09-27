@@ -42,8 +42,8 @@
 /* ---------- Венская пастель: шалфей, пыльная роза, чернильно-синий ---------- */
 :root[data-palette="pastel"]{
   color-scheme:light;
-  --bg:#F7F2EA; --surface:#FFFDF8; --surface-2:#EFE7DA; --map-bg:#F2ECE1;
-  --ink:#232C3D; --ink-2:#414A5A; --muted:#6F7584; --line:#E3DACA; --line-strong:#CDBFA8;
+  --bg:#ECF0EA; --surface:#FAFCF8; --surface-2:#E1E8DE; --map-bg:#E8EDE5;
+  --ink:#232C3D; --ink-2:#414A5A; --muted:#667068; --line:#D3DCCF; --line-strong:#B9C6B3;
   --gold:#8F7040; --deco:#B89A5E; --primary:#4F6F94;
   --water:#B3C7D4; --ring:#DCCDB0; --park:#D8E2D2;
   --c-mozart:#A9575E; --c-beethoven:#557C67; --c-klimt:#9A7A3E; --c-freud:#4F6F94;

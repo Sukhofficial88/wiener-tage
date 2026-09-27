@@ -37,7 +37,7 @@ let settings = Object.assign({autoVoice:true, vibrate:true, calibrate:false, voi
 const PALETTES = [
   {id:"cafe",   sw:["#F3EDE1","#1F4538","#B08D57","#8C2F39"]},
   {id:"gold",   sw:["#121110","#D4AF5A","#F1EADB","#E08A8F"]},
-  {id:"pastel", sw:["#F7F2EA","#557C67","#A9575E","#4F6F94"]}
+  {id:"pastel", sw:["#ECF0EA","#557C67","#A9575E","#4F6F94"]}
 ];
 function applyPalette(){
   const el = document.documentElement;
