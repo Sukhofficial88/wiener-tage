@@ -401,11 +401,11 @@ h3,h4{font-family:var(--f-title)}
   background:color-mix(in srgb,var(--hc) 14%,var(--surface));clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
 .stop.v .num{background:var(--hc);color:var(--on-hc)}
 .stop-title{display:flex;flex-direction:column;min-width:0}
-.time{font-size:11px;letter-spacing:.14em;color:var(--hc);font-weight:600;font-variant-numeric:tabular-nums}
 .stop-head h3{font-size:21px;line-height:1.1}
 .place{font-size:12.5px;color:var(--muted);margin:-2px 0 0}
-.voice{font-family:var(--f-voice);font-style:italic;font-size:18.5px;line-height:1.4;margin:0;padding:2px 0 2px 12px;border-left:2px solid var(--hc);color:var(--ink)}
-.voice.speaking{background:color-mix(in srgb,var(--hc) 8%,transparent)}
+.story{margin:0;padding:2px 0 2px 12px;border-left:2px solid var(--hc)}
+.story p{margin:0;font-size:15px;line-height:1.6;color:var(--ink)}
+.story.speaking{background:color-mix(in srgb,var(--hc) 8%,transparent)}
 .src{font-size:11.5px;color:var(--muted);margin:-2px 0 0 14px}
 .stop-actions{display:flex;flex-wrap:wrap;gap:6px}
 .facts{border-top:1px solid var(--line);padding-top:6px}
@@ -536,7 +536,7 @@ dialog#settings::backdrop{background:rgba(0,0,0,.4)}
   .hh-top .mono-big svg{width:56px;height:56px}
   .stats li{padding:5px 10px 5px 0;margin-right:10px}
   .stats b{font-size:17px}
-  .voice{font-size:17.5px}
+  .story p{font-size:14.5px}
   .leg{margin-left:16px}
   .dock-main b{font-size:17px}
   .dock-actions .btn{flex:1 1 auto}

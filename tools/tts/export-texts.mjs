@@ -3,7 +3,7 @@ import { UI } from '../../js/i18n.js';
 import fs from 'fs';
 const out = {};
 for(const [id,h] of Object.entries(en.heroes)){
-  out[id] = { stops: h.stops.map(s=>s.voice), epilogue: h.epilogue,
+  out[id] = { stops: h.stops.map(s=>s.story), epilogue: h.epilogue,
     intro: UI.en.introFirst.replace('{short}', h.short).replace('{title}', h.stops[0].title) };
 }
 fs.writeFileSync('en-texts.json', JSON.stringify(out, null, 1));

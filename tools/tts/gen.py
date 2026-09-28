@@ -2,12 +2,9 @@ import json, re, sys, os, time, numpy as np, lameenc
 from kokoro_onnx import Kokoro
 OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
 k = Kokoro('expo/package/build/kokoro-quantized.onnx', 'voices.npz')
+# Один голос рассказчика для всех маршрутов: герои не говорят от первого лица
 VOICES = {  # голос, скорость, акцент
-  "mozart":    ("bm_fable",  1.04, "en-gb"),
-  "beethoven": ("bm_lewis",  0.90, "en-gb"),
-  "klimt":     ("am_michael",0.95, "en-us"),
-  "freud":     ("bm_george", 0.94, "en-gb"),
-  "narrator":  ("bf_emma",   1.00, "en-gb"),
+  "narrator":  ("bf_emma",   0.97, "en-gb"),
 }
 FIX = {  # правильное произношение имён (IPA)
   "Heiligenstadt":"hˈaɪlɪɡənʃtˌat", "Ries":"ɹˈiːs", "Flöge":"flˈɜːɡə", "Wiener":"vˈiːnə", "Werkstätte":"vˈɛəkʃtˌɛtə",
@@ -15,7 +12,10 @@ FIX = {  # правильное произношение имён (IPA)
   "Landtmann":"lˈantman", "Constanze":"kɒnstˈantsə", "Attersee":"ˈatəzeɪ", "Graben":"ɡɹˈɑːbən", "Therese":"teɪɹˈeɪzə",
   "Emilie":"eɪmˈiːliə", "Loos":"lˈəʊs", "Mehlgrube":"mˈeɪlɡɹuːbə", "Wegeler":"vˈeɪɡələ", "Mathilde":"matˈɪldə",
   "Herr":"hˈeə", "Figaro":"fˈɪɡəɹəʊ", "più":"pjˈuː", "andrai":"andɹˈaɪ", "grande":"ɡɹˈandeɪ", "Domgasse":"dˈəʊmɡasə",
-  "Berggasse":"bˈɛəkɡasə", "Schönbrunn":"ʃˈɜːnbɹʊn", "Trattner":"tɹˈatnə"
+  "Berggasse":"bˈɛəkɡasə", "Schönbrunn":"ʃˈɜːnbɹʊn", "Trattner":"tɹˈatnə",
+  "Kohlmarkt":"kˈəʊlmɑːkt", "Schreiberbach":"ʃɹˈaɪbəbax", "Probusgasse":"pɹˈəʊbʊsɡasə", "Ringstrasse":"ɹˈɪŋʃtɹɑːsə",
+  "Privatdozent":"pɹɪvˈɑːtdəʊtsˌɛnt", "Konzerthaus":"kɒntsˈɛəthaʊs", "Kapellmeister":"kapˈɛlmaɪstə", "Schiele":"ʃˈiːlə",
+  "Michaelerplatz":"mˈɪçaɛləplats", "Grüner":"ɡɹˈuːnə", "Schwestern":"ʃvˈɛstən", "tarock":"tɑːɹˈɒk", "Olbrich":"ˈɒlbɹɪç"
 }
 ONES="zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
 TENS="_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
@@ -57,7 +57,7 @@ for hero in only:
     d = texts[hero]
     total += say(d["intro"], "narrator", f"{OUT}/{hero}-intro.mp3")
     for i, txt in enumerate(d["stops"], 1):
-        dur = say(txt, hero, f"{OUT}/{hero}-{i}.mp3"); total += dur
+        dur = say(txt, "narrator", f"{OUT}/{hero}-{i}.mp3"); total += dur
         print(f"{hero}-{i}: {dur:.1f}s (elapsed {time.time()-t0:.0f}s)", flush=True)
     total += say(d["epilogue"], "narrator", f"{OUT}/{hero}-epilogue.mp3")
 print(f"DONE {total/60:.1f} min of audio in {(time.time()-t0)/60:.1f} min", flush=True)

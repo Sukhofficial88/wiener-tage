@@ -18,7 +18,6 @@ function chunks(t, max){
 
 // Оценка качества голоса синтезатора по названию
 const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|hysterical|eddy|flo\b|grandma|grandpa|reed|rocko|sandy|shelley/i;
-const MALE = /\bmale\b|daniel|arthur|oliver|ryan|guy|christopher|eric|thomas|aaron|evan|nathan|\btom\b|alex|fred|gordon|rishi|george|jamie|liam|andrew|brian|davis|jason|tony|roger|conrad|florian|killian|jonas|markus|yannick|stefan|hans|klaus|henri|paul|jérôme|jerome|denis|remy|rémy|luca|diego|cosimo|giuseppe|benigno|alvaro|álvaro|jorge|juan|pablo|alonso|carlos|enrique|dmitr|pavel|yuri|maxim|artem|ilya|ivan/i;
 export function voiceScore(v){
   let s = 0;
   if(/natural/i.test(v.name)) s += 100;       // нейросетевые голоса Microsoft Edge
@@ -27,7 +26,6 @@ export function voiceScore(v){
   if(/google/i.test(v.name)) s += 40;
   if(/compact/i.test(v.name)) s -= 30;
   if(NOVELTY.test(v.name)) s -= 200;
-  if(MALE.test(v.name)) s += 12;              // все герои пилота — мужчины
   return s;
 }
 
@@ -144,7 +142,7 @@ export const Voice = {
       const u = new SpeechSynthesisUtterance(parts[i++]);
       u.lang = this.voice ? this.voice.lang : this.langTag; if(this.voice) u.voice = this.voice;
       // Высоту голоса не трогаем: сдвиг высоты делает синтезатор металлическим
-      u.rate = hero ? hero.voice.rate : 1; u.pitch = 1;
+      u.rate = 0.97; u.pitch = 1;
       u.onstart = ()=>{ started = true; };
       u.onend = next;
       u.onerror = e=>{

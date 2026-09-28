@@ -12,7 +12,7 @@ import { mapSVG, updateMe as updateSchemeMe } from "./map.js";
 import { loadCityMap, mountCityMap } from "./citymap.js";
 import { Sound } from "./soundscape.js";
 
-const APP_VERSION = "0.8.0";
+const APP_VERSION = "0.9.0";
 const CONTENT = {ru, de, en, fr, it, es};
 
 /* ============================ helpers ============================ */
@@ -105,7 +105,7 @@ function dayStats(h){
   const walkM = L.filter(l=>!l.transit).reduce((a,l)=>a+l.walk, 0);
   const transit = L.filter(l=>l.transit).length;
   const places = new Set(st.map(s=>s.addr)).size;
-  return {walkM, transit, places, minutes: walkM/75 + st.length*12 + transit*35};
+  return {walkM, transit, places, minutes: walkM/75 + st.reduce((m, x)=>m + (x.stay||10) + 2, 0) + transit*35};
 }
 const gmapsLang = ()=>"&hl="+lang();
 const mapsSearch = addr => "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr)+gmapsLang();
@@ -274,7 +274,7 @@ function listen(h, i, auto){
   S.listen = !!auto;
   setActive(i, true);
   if(soundOn()) Sound.enter(s.snd); else Sound.stopAll(0.5);
-  Voice.say(h, i, s.title, s.voice, audioFor(h, i), ()=>{
+  Voice.say(h, i, s.title, s.story, audioFor(h, i), ()=>{
     const more = S.listen && i < st.length-1 && sameHero(S.hero, h);
     const next = ()=>{ if(S.listen && !Voice.playing && sameHero(S.hero, h)) listen(S.hero, i+1, true); };
     if(more && settings.sound && s.snd && s.snd.music) Sound.playMusic(s.snd.music, ()=>setTimeout(next, 600)).then(ok=>{ if(!ok) setTimeout(next, 900); });
@@ -286,11 +286,11 @@ function stopListen(){ S.listen = false; Voice.stop(); Sound.stopAll(1); }
 
 function updateVoiceUI(){
   const P = Voice.playing;
-  $$(".voice.speaking").forEach(v=>v.classList.remove("speaking"));
+  $$(".story.speaking").forEach(v=>v.classList.remove("speaking"));
   $$("[data-speak]").forEach(b=>{ b.innerHTML = ICON.play+t("voiceBtn"); });
   if(P && sameHero(P.hero, S.hero) && typeof P.key === "number"){
     const card = $(`#stop-${P.key}`);
-    if(card){ $(".voice", card)?.classList.add("speaking"); const b = $("[data-speak]", card); if(b) b.innerHTML = ICON.stop+t("stopBtn"); }
+    if(card){ $(".story", card)?.classList.add("speaking"); const b = $("[data-speak]", card); if(b) b.innerHTML = ICON.stop+t("stopBtn"); }
   }
   const pd = $("#play-day");
   if(pd) pd.innerHTML = (P && S.listen) ? ICON.stop+t("stopBtn") : ICON.play+t("listenDay");
@@ -398,7 +398,7 @@ function playInWalk(i){
   const w = S.walk; const s = w.stops[i];
   Sound.stopMusic(2);
   if(soundOn()) Sound.enter(s.snd);
-  Voice.say(w.hero, i, s.title, s.voice, audioFor(w.hero, i), ()=>{ if(S.walk === w && !w.pending.length) startLinger(i); });
+  Voice.say(w.hero, i, s.title, s.story, audioFor(w.hero, i), ()=>{ if(S.walk === w && !w.pending.length) startLinger(i); });
 }
 
 // Пауза «Осмотритесь»: герой договорил, фон и музыка звучат, пока человек разглядывает место
@@ -509,7 +509,7 @@ function renderDock(){
   }
   if(P){
     const h = heroById(P.hero.id) || P.hero;
-    const title = typeof P.key === "number" ? `${h.stops[P.key].time} · ${P.title}` : P.title;
+    const title = typeof P.key === "number" ? `${P.key+1}. ${P.title}` : P.title;
     const canNext = S.listen && typeof P.key === "number" && P.key < h.stops.length-1;
     d.className = `dock player h-${h.id}`;
     d.innerHTML = `<div class="dock-in row">
@@ -710,7 +710,6 @@ function renderHero(h, keepScroll){
         <li><b>${t("u_km",{n:km(st.walkM)})}</b><span>${t("statWalk")}</span></li>
         ${st.transit?`<li><b>${fmtNum(st.transit)}</b><span>${tp("pl_trips", st.transit)}</span></li>`:""}
         <li><b>≈ ${fmtMin(st.minutes)}</b><span>${t("statTour")}</span></li>
-        <li><b>${stops[0].time}–${stops[stops.length-1].time}</b><span>${t("statDay")}</span></li>
       </ul>
       <div class="actions">
         <button class="btn solid big" type="button" id="walk-start">${ICON.walk}${t("startWalk")}</button>
@@ -771,11 +770,11 @@ function stopHTML(h, s, i, leg){
   <article class="stop${v?" v":""}" id="stop-${i}" data-i="${i}">
     <div class="stop-card frame">
       <header class="stop-head"><span class="num">${i+1}</span>
-        <div class="stop-title"><span class="time">${s.time}</span><h3>${s.title}</h3></div>
+        <div class="stop-title"><h3>${s.title}</h3></div>
       </header>
       <p class="place">${s.place} · ${s.addr}</p>
-      <blockquote class="voice">${s.voice}</blockquote>
-      <p class="src">${s.src}</p>
+      <div class="story"><p>${s.story}</p></div>
+      ${s.src ? `<p class="src">${s.src}</p>` : ""}
       <div class="stop-actions">
         <button class="btn small solid" type="button" data-speak="${i}">${ICON.play}${t("voiceBtn")}</button>
         <button class="btn small" type="button" data-visit="${i}" aria-pressed="${v}">${ICON.check}${v?t("visited"):t("imHere")}</button>
@@ -785,12 +784,10 @@ function stopHTML(h, s, i, leg){
       ${s.moment==="hearing"?momentHTML():""}
       <div class="facts">
         <div class="tabs" role="tablist">
-          <button type="button" role="tab" aria-selected="true" data-tab="fact">${t("factLabel")}</button>
-          <button type="button" role="tab" aria-selected="false" data-tab="now">${t("nowLabel")}</button>
+          <button type="button" role="tab" aria-selected="true" data-tab="now">${t("nowLabel")}</button>
           ${s.look ? `<button type="button" role="tab" aria-selected="false" data-tab="look">${t("lookTab")}</button>` : ""}
         </div>
-        <p data-pane="fact">${s.fact}</p>
-        <p data-pane="now" hidden>${s.now}</p>
+        <p data-pane="now">${s.now}</p>
         ${s.look ? `<div data-pane="look" class="look" hidden>
           <ul>${s.look.map(x=>`<li>${x}</li>`).join("")}</ul>
           <p class="stay">${ICON.eye}${t("stayFor", {n:s.stay||10})}</p>
@@ -832,7 +829,7 @@ function wireHero(h){
     const P = Voice.playing;
     if(P && sameHero(P.hero, h) && P.key === i){ Voice.stop(); S.listen = false; if(!S.walk) Sound.leave(2); return; }
     Voice.broken = false;
-    if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.voice, audioFor(S.walk.hero, i), null); }
+    if(S.walk){ const s = S.walk.stops[i]; Voice.say(S.walk.hero, i, s.title, s.story, audioFor(S.walk.hero, i), null); }
     else listen(h, i, false);
   }));
   $$("[data-music]").forEach(b=>b.addEventListener("click", e=>{
